@@ -9,11 +9,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "babel-runtime": "^6.26.0",
     "bcrypt": "^5.0.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "fs": "0.0.1-security",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.11.4",
-    "mongoose-float": "^1.0.4"
+    "mongoose-float": "^1.0.4",
+    "multiparty": "^4.2.2",
+    "neat-csv": "^5.2.0",
+    "pandas-js": "^0.2.4"
   }
 }
