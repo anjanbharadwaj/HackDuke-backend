@@ -13,8 +13,8 @@ const cors = require('cors')
 app.use(cors())
 app.options('*', cors()) // Allow options on all resources
 
-const url = "mongodb://127.0.0.1:27017/hackduke"
-// const url = "mongodb+srv://anjanb:hackdukegang@hackduke.plomn.mongodb.net/main-db?retryWrites=true&w=majority";
+// const url = "mongodb://127.0.0.1:27017/hackduke"
+const url = "mongodb+srv://anjanb:hackdukegang@hackduke.plomn.mongodb.net/main-db?retryWrites=true&w=majority";
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())

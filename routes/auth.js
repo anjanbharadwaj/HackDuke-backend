@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Charity = require('../models/Charity');
 const Restaurant = require('../models/Restaurant');
+const ObjectId = mongoose.Types.ObjectId;
 
 const saltRounds = 10;
 
@@ -37,7 +38,11 @@ router.route('/register')
                                     name: req.body.name,
                                     email: req.body.email,
                                     password: hashedPassword,
-                                    locationAddress: req.body.locationAddress
+                                    locationAddress: req.body.locationAddress,
+                                    latitude: req.body.latitude,
+                                    longitude: req.body.longitude,
+                                    dreamInventory: ObjectId(req.body.dreamInventory),
+                                    charityRequestIds: req.body.charityRequestIds
                                 })
                                 
                                 charity.save((err)=>{
@@ -164,6 +169,10 @@ function loginRestaurant(email, password, res) {
         }
     });
     
+}
+
+function createInventory() {
+
 }
 
 module.exports = router

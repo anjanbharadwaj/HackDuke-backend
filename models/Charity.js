@@ -24,7 +24,7 @@ const charitySchema = new Schema({
         type: Float,
         required: true
     },
-    dreamInventory: {type: ObjectId, ref: 'Inventory', required: true},
-    charityRequestIds: [{type: ObjectId, ref: 'CharityRequest', required: true}]
+    dreamInventory: {type: ObjectId, ref: 'Inventory', required: false},
+    charityRequestIds: [{type: ObjectId, ref: 'CharityRequest', required: false}]
 }, {collection: 'charityCollection'})
 module.exports = mongoose.model('Charity', charitySchema)
