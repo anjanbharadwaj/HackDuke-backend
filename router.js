@@ -28,6 +28,9 @@ router.get('/', function (req, res) {
 const authRouter = require('./routes/auth.js')
 app.use('/auth', authRouter)
 
+const charityRouter = require('./routes/charity.js')
+app.use('/charity', charityRouter)
+
 app.listen(port, () => {
     console.log(`Listening on port ${port}`)
 })

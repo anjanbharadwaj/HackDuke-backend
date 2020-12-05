@@ -3,7 +3,7 @@ const Schema = mongoose.Schema
 const FoodTypeWrapper = require('./FoodTypeWrapper');
 const ObjectId = Schema.Types.ObjectId;
 const inventorySchema = new Schema({
-    foodTypeWrapperId: {
+    foodTypeWrapperIds: {
         type: [{type: ObjectId, ref: 'FoodTypeWrapper'}],
         required: true
     }

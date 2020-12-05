@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
 var Float = require('mongoose-float').loadType(mongoose);
-
 const Schema = mongoose.Schema
+const ObjectId = Schema.Types.ObjectId;
+
 const charitySchema = new Schema({
     name: {
         type: String,

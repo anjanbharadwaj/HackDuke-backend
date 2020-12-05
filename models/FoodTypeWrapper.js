@@ -11,5 +11,5 @@ const foodTypeWrapperSchema = new Schema({
         type: Number,
         required: true
     }
-}, {collection: 'foodCollection'})
+}, {collection: 'foodWrapperCollection'})
 module.exports = mongoose.model('FoodTypeWrapper', foodTypeWrapperSchema)
