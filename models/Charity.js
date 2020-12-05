@@ -1,4 +1,6 @@
 const mongoose = require('mongoose')
+var Float = require('mongoose-float').loadType(mongoose);
+
 const Schema = mongoose.Schema
 const charitySchema = new Schema({
     name: {
@@ -13,18 +15,21 @@ const charitySchema = new Schema({
         type: String,
         required: true
     },
-    locationAddress: {
-        type: String,
+    latitude: {
+        type: Float,
         required: true
-    }
+    },
+    longitude: {
+        type: Float,
+        required: true
+    },
+    dreamInventory: {
+        type: {type: ObjectId, ref: 'Inventory'},
+        required: true
+    },
+    charityRequestIds: {
+        type: [{type: ObjectId, ref: 'CharityRequest'}],
+        required: true
+    },
 }, {collection: 'charityCollection'})
 module.exports = mongoose.model('Charity', charitySchema)
-
-
-// id
-// Dream_inventory: Inventory
-// CharityRequests: [ req1, req2]
-// Name
-// Email
-// Password
-// Location/Address
