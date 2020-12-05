@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
 var Float = require('mongoose-float').loadType(mongoose);
 const Schema = mongoose.Schema
+const ObjectId = Schema.Types.ObjectId;
+
 const restaurantSchema = new Schema({
     name: {
         type: String,
@@ -22,10 +24,7 @@ const restaurantSchema = new Schema({
         type: Float,
         required: true
     },
-    donationBatches: {
-        type: [{type: ObjectId, ref: 'DonationBatch'}],
-        required: true
-    },
+    donationBatches: [{type: ObjectId, ref: 'DonationBatch', required: true}]
 }, {collection: 'restaurantCollection'})
 module.exports = mongoose.model('Restaurant', restaurantSchema)
 

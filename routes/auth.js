@@ -19,14 +19,17 @@ router.route('/register')
             console.log("requested charity register")
             Charity.findOne({ email: req.body.email}, function (err, charity) {
                 if (err) {
+                    console.log("err1")
                     res.status(400).json({error: err})
                 } else {
                     if (charity) {
+                        console.log("err2: existing")
                         res.status(400).json({error: err})
                         // already exists
                     } else {
                         bcrypt.hash(req.body.password, saltRounds, function(err, hashedPassword) {
                             if (err) {
+                                console.log("encryption failed")
                                 res.status(400).json({error: err, message: "encryption error"})
                             }
                             else {
@@ -39,6 +42,7 @@ router.route('/register')
                                 
                                 charity.save((err)=>{
                                     if (err){
+                                        console.log("save failed")
                                         res.status(400).json({error: err, message: "save error"})
                                     }else{
                                         res.status(200).json({message: "success"})
@@ -117,6 +121,7 @@ function loginCharity(email, password, res) {
                     } else {
                         if (correct) {
                             jwt.sign({uid: charity.id}, secretKey, (err, token) => {
+                                console.log(charity)
                                 res.status(200).json({message: "success", token: token, type: "charity"})
                             })
                         } else {
@@ -133,7 +138,7 @@ function loginCharity(email, password, res) {
 }
 
 function loginRestaurant(email, password, res) {
-    console.log("loginRestaurant")
+    console.log("loginRestaurant a")
     Restaurant.findOne({ email: email}, function (err, restaurant) {
         if (err) {
             res.status(400).json({error: err})
@@ -154,7 +159,7 @@ function loginRestaurant(email, password, res) {
                     }
                 });
             } else {
-                res.status(401).json({error: "Incorrect Username!"})
+                res.status(401).json({error: "Incorrect Email!"})
             }
         }
     });

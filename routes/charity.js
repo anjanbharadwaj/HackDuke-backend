@@ -18,8 +18,8 @@ router.route('/request')
         inventory = req.inventory
         charity = req.charity
         let createdDate = new Date();
-        let charityId = charity._id
-        let donationRequests = generateDonationRequests(charityId)
+        // let charityId = charity._id
+        let donationRequests = generateDonationRequests(charity)
         
     }
 )
@@ -49,9 +49,9 @@ function generateDonationRequests(charityId) {
     let dreamInventory = getDreamInventory(charityId);
 }
 
-function getDreamInventory(charityId) {
-    let foundCharity = Charity.findById(charityId).populate('dreamInventory').exec();
-    console.log('Found dream inventory: ', foundCharity.dreamInventory);
-    return foundCharity;
+function getDreamInventory(charity) {
+    let foundCharity = charity.populate('dreamInventory').exec();
+    console.log('Found dream inventory: ', charity.dreamInventory);
+    return charity;
 }
 module.exports = router
