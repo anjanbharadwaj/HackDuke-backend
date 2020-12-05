@@ -15,7 +15,6 @@ router.route("/")
         let form = new multiparty.Form();
 
         form.parse(req, async (err, fields, files) => {
-            console.log(files["inventory"][0].path);
             parseCSV(files["inventory"][0].path);
         });
     })
@@ -46,34 +45,38 @@ function mapToJSON(map) {
 }
 function parseCSV(path) {
     fs.readFile(path, async (error, data) => {
-        neatCSV(data).then(data => {
+        neatCsv(data).then(data => {
             makeJSONFromData(data);
         })
     })
 }
 
 function mapToServer(map) {
+    console.log("Map to Server Called");
     let wrappers = [];
-    if (!map.keys().hasNext()){
+    if (iterToArray(map.keys()).length === 0){
         return;
     }
     makeWrapper(map, 0, wrappers);
 }
 
 function makeWrapper(map, index, wrappers) {
+    console.log("Wrapper " + index + " is being made, looking for " + iterToArray(map.keys())[index]);
     FoodType.findOne({group: iterToArray(map.keys())[index]}, (err, foodType) => {
         if(err) {
-            console.log("err1")
-            res.status(400).json({error: err})
+            console.log("err1");
         } else if(foodType) {
-            const wrapper = new FoodType({
-                foodTypeId: ObjectId(foodType),
-                amount: map.get(key)
+            console.log(iterToArray(map.keys())[index] + " was found");
+            const wrapper = new FoodTypeWrapper({
+                foodTypeId: foodType._id,
+                amount: map.get(iterToArray(map.keys())[index])
             });
+            console.log("wrapper was made");
             wrappers.push(wrapper);
             if(index < iterToArray(map.keys()).length - 1) {
                 makeWrapper(map, index + 1, wrappers);
             } else {
+                console.log("All wrappers are made");
                 pushWrappers(wrappers);
             }
         }
@@ -81,8 +84,13 @@ function makeWrapper(map, index, wrappers) {
 }
 
 function pushWrappers(wrappers) {
-    let i = new Inventory(wrappers);
-    i.save();
+    console.log(wrappers);
+    let i = new Inventory({
+        foodTypeWrapperIds: wrappers
+    });
+    i.save().then(() => {
+        console.log("Saved");
+    });
 }
 
 function iterToArray(i) {
@@ -92,3 +100,5 @@ function iterToArray(i) {
     }
     return out;
 }
+
+module.exports = router;
