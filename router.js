@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 const router = express.Router()
 
 const app = express()
-const port = process.env.PORT || 3000
+const port = 3001
 
 const db = mongoose.connection
 
@@ -34,6 +34,9 @@ app.use('/charity', charityRouter)
 
 const analyticsRouter = require('./routes/analytics.js')
 app.use('/analytics', analyticsRouter)
+
+const parseModule = require("./routes/ParseModules.js");
+app.use('/parse', parseModule);
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`)

@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const Nutrition = require('./Nutrition');
+const ObjectId = Schema.Types.ObjectId;
+
 const foodTypeSchema = new Schema({
     name: {
         type: String,
@@ -15,9 +17,6 @@ const foodTypeSchema = new Schema({
         required: true,
         default: false
     },
-    nutrition: {
-        type: Nutrition,
-        required: false
-    }
+    nutrition: {type: ObjectId, ref: 'Nutrition', required: false}
 }, {collection: 'foodCollection'})
 module.exports = mongoose.model('FoodType', foodTypeSchema)

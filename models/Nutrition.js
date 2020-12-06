@@ -20,7 +20,7 @@ const nutritionSchema = new Schema({
         required: false
     },
     vitamins: {
-        type: [String],
+        type: String,
         required: false
     }
 }, {collection: 'foodCollection'})
