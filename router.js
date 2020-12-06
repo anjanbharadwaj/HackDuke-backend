@@ -32,6 +32,9 @@ app.use('/auth', authRouter)
 const charityRouter = require('./routes/charity.js')
 app.use('/charity', charityRouter)
 
+const analyticsRouter = require('./routes/analytics.js')
+app.use('/analytics', analyticsRouter)
+
 app.listen(port, () => {
     console.log(`Listening on port ${port}`)
 })
