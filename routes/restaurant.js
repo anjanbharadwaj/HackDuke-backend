@@ -11,7 +11,7 @@ const CharityRequest = require('../models/CharityRequest');
 const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId;
 const lodash = require('lodash')
-const utils = require('./ParseModules');
+const utils = require('./ParseModulesRestaurant');
 
 const multiparty = require("multiparty");
 
@@ -19,36 +19,70 @@ const saltRounds = 10;
 
 const secretKey = "hackdukeisamazing"
 
-router.use('/request', verifyAuthToken)
+router.use('/donate', verifyAuthToken)
 
-router.route('/request')
+router.route('/donate')
     .post(async (req, res) => {
-        console.log("generating restaurant request")
+        console.log("generating restaurant donation")
         let form = new multiparty.Form();
         form.parse(req, async (err, fields, files) => {
-            let currentInventory = await utils.parsing(files["inventory"][0].path);
-            charity = req.charity
-            console.log("CURRENT INVENTORY: ")
-            console.log(currentInventory)
-            let createdDate = new Date();
+            let json_out = await utils.parsing(files["inventory"][0].path);
+            restaurant = req.restaurant
+            console.log("CURRENT JSON: ")
+            console.log(json_out)
+            console.log("restaurant: ")
+            console.log(restaurant)
             let restaurantId = restaurant.uid
-            let donationRequests = getDreamInventory(charityId, currentInventory)
+            console.log(restaurantId)
+            let donationRequests = getRestaurant(restaurantId, json_out, res)
         });
         
         
     }
 )
 
+function getRestaurant(restaurantId, json_out, res) {
+    Restaurant.findById(mongoose.Types.ObjectId(restaurantId), function(err, restaurant) {
+        if (err || !restaurant) {
+            console.log("err1")
+            console.log(err)
+            console.log(restaurant)
+            res.status(400).json({error: err})
+        } else {
+            grabCharityRequests(restaurant, json_out);
+        }
+    });
+}
+
+function grabCharityRequests(restaurant, json_out) {
+    CharityRequest.find({
+        location: {
+         $near: {
+          $maxDistance: 10000,
+          $geometry: {
+           type: "Point",
+           coordinates: restaurant.location.coordinates
+          }
+         }
+        }
+       }).find((error, results) => {
+        if (error) console.log(error);
+        console.log("DISTTANCEE")
+        console.log(JSON.stringify(results, 0, 2));
+       });
+    // CharityRequest.find
+}
+
 function verifyAuthToken(req, res, next) {
     const tokenStr = req.headers['authorization']
     if (tokenStr) {
         const authToken = tokenStr.split(' ')[1]
         console.log(authToken)
-        jwt.verify(authToken, secretKey, (err, charity) => {
+        jwt.verify(authToken, secretKey, (err, restaurant) => {
             if (err) {
               return res.sendStatus(403)
             } 
-            req.charity = charity
+            req.restaurant = restaurant
             next() 
           })
     } else {

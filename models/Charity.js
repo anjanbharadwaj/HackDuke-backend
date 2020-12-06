@@ -16,15 +16,14 @@ const charitySchema = new Schema({
         type: String,
         required: true
     },
-    latitude: {
-        type: Float,
-        required: true
-    },
-    longitude: {
-        type: Float,
-        required: true
+    location: {
+        type: { type: String },
+        coordinates: []
     },
     dreamInventory: {type: ObjectId, ref: 'Inventory', required: false},
     charityRequestIds: [{type: ObjectId, ref: 'CharityRequest', required: false}]
 }, {collection: 'charityCollection'})
+
+charitySchema.index({ location: "2dsphere" });
+
 module.exports = mongoose.model('Charity', charitySchema)

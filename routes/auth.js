@@ -115,8 +115,10 @@ router.route('/register')
                                     name: req.body.name,
                                     email: req.body.email,
                                     password: hashedPassword,
-                                    latitude: req.body.latitude,
-                                    longitude: req.body.longitude,
+                                    location: {
+                                        type: "Point",
+                                        coordinates: [req.body.longitude, req.body.latitude]
+                                    },
                                     donationBatches: []
                                 })
                                 
@@ -224,8 +226,10 @@ async function completeRegisterCharity(files, fields, hashedPassword, res){
             name: fields['name'][0],
             email: fields['email'][0],
             password: hashedPassword,
-            latitude: fields['latitude'][0],
-            longitude: fields['longitude'][0],
+            location: {
+                type: "Point",
+                coordinates: [fields['longitude'][0], fields['latitude'][0]]
+            },
             dreamInventory: dreamInventory._id,
             charityRequestIds: []
         })
