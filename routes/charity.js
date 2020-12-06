@@ -78,13 +78,23 @@ router.route('/latest_request')
                     // console.log("boo");
                     // console.log(objj);
 
-                    // console.log(objj[0]);
-                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", objj[0].givenDonationIds));
-                    // console.log("boo");
-                    // console.log(groupAmountMap);
+                    console.log(objj[0]);
+                    let modifiedGivenDonations = [];
+                    for (let givenDonation of objj[0].givenDonationIds) {
+                        let r = await Restaurant.findById(givenDonation.restaurantId).exec();
+                        let modifiedGivenDonation = {...givenDonation.toObject()};
+                        modifiedGivenDonation.name = r.toObject().name;
+                        console.log("MODIFIED DONATION: " + JSON.stringify(modifiedGivenDonation));
+                        console.log("NAME ADDED: " + r.toObject().name);
+                        modifiedGivenDonations.push(modifiedGivenDonation);
+                    }
+                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", modifiedGivenDonations));
+                    console.log("boo");
+                    console.log(groupAmountMap);
 
                 }
-                console.log(mapToJSON(groupAmountMap));
+
+                console.log("FINAL: " + JSON.stringify(mapToJSON(groupAmountMap)));
                 return res.status(200).json(mapToJSON(groupAmountMap));
             });
 
@@ -291,22 +301,16 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 }
 
-
 function mapToJSON(map) {
-    let out = "{"
+    let obj = {};
     for (let key of map.keys()) {
-        let getVal = map.get(key);
-        if (getVal.constructor.name == "Map") {
-            getVal = mapToJSON(getVal);
+        let value = map.get(key);
+        if (value.constructor.name === "Map") {
+            value = mapToJSON(value);
         }
-        if (getVal.length != null && getVal.length === 0) {
-            getVal = "null";
-        }
-        out += "\"" + key + "\": " + getVal + ",";
+        Object.assign(obj, {[key]: value});
     }
-    out = out.substr(0, out.length - 1);
-    out += "}";
-    return out;
+    return obj
 }
 
 
@@ -333,8 +337,11 @@ router.route('/specific-donation-request')
             res.status(400).json();
         }
         donation_Req = lst[0]
+
+
         return donation_Req
     });
+
 
 
 module.exports = router
