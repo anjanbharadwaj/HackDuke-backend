@@ -12,6 +12,7 @@ const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId;
 const lodash = require('lodash')
 const utils = require('./ParseModules');
+const FoodType = require("../models/FoodType")
 
 const multiparty = require("multiparty");
 const { request } = require('express');
@@ -60,9 +61,19 @@ router.route('/latest_request')
                 return new Date(b.createdDate) - new Date(a.createdDate);
             });
             let bestCharityRequest = arr[0]
-            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(function(err, charityReq) {
+            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function(err, charityReq) {
                 if (err) res.status(400).json();
-                return res.status(200).json({ request: charityReq })
+                console.log("FINAL: ");
+                let groupAmountMap =new Map();
+                for (let donation of charityReq[0]["donationRequestIds"]) {
+                    console.log(donation.amountLeft);
+                    console.log(donation.foodTypeId);
+                    console.log(donation.givenDonationIds)
+                    let out = await FoodType.findById(donation.foodTypeId).exec();
+                    console.log(out.group);
+                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", donation.givenDonationIds));
+                }
+                return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
             });
         
         });
@@ -254,6 +265,23 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 }
 
+
+function mapToJSON(map) {
+    let out = "{"
+    for(let key of map.keys()){
+        let getVal = map.get(key);
+        if(getVal.constructor.name == "Map") {
+            getVal = mapToJSON(getVal);
+        }
+        if (getVal.length != null && getVal.length === 0) {
+            getVal = "null";
+        }
+        out += "\"" + key + "\": " + getVal + ",";
+    }
+    out = out.substr(0, out.length - 1);
+    out += "}";
+    return out;
+}
 
 
 
