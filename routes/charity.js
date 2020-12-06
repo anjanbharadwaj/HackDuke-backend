@@ -52,8 +52,8 @@ router.route('/latest_request')
             if (err) return handleError(err);
 
             let arr = data[0].charityRequestIds
-            console.log("arr")
-            console.log(arr)
+            // console.log("arr")
+            // console.log(arr)
             arr.sort(function (a, b) {
                 // Turn your strings into dates, and then subtract them
                 // to get a value that is either negative, positive, or zero.
