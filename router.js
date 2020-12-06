@@ -33,7 +33,7 @@ const charityRouter = require('./routes/charity.js')
 app.use('/charity', charityRouter)
 
 const parseModule = require("./routes/ParseModules.js");
-app.use('/parse', parseModule);
+app.use('/parse', parseModule.router);
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`)

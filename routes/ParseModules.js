@@ -16,7 +16,6 @@ router.route("/")
 
         form.parse(req, async (err, fields, files) => {
             let result = await parseCSV(files["inventory"][0].path);
-            console.log("FINAL RESULT: " + result);
 
         });
     })
@@ -34,7 +33,6 @@ async function makeMapFromData(data) {
     }
     //mapToJSON(map);
     let result = await mapToServer(map);
-    console.log("MAP TO SERVER RESULT: " + result);
     return result;
 }
 
@@ -51,12 +49,10 @@ async function parseCSV(path) {
     let data = fs.readFileSync(path);
     let csvData = await neatCsv(data);
     let result = await makeMapFromData(csvData);
-    console.log("MAKE MAP FROM DATA RESULT: " + result);
     return result;
 }
 
 async function mapToServer(map) {
-    console.log("Map to Server Called");
     let wrappers = [];
     if (iterToArray(map.keys()).length === 0){
         return;
@@ -79,14 +75,12 @@ async function makeWrapper(map, index, wrappers) {
                 foodTypeId: foodType._id,
                 amount: map.get(iterToArray(map.keys())[index])
             });
-            console.log("wrapper was made");
             wrappers.push(wrapper);
         }
     }).exec()
 }
 
 async function pushWrappers(wrappers) {
-    console.log(wrappers);
     let i = new Inventory({
         foodTypeWrapperIds: wrappers
     });
@@ -103,4 +97,4 @@ function iterToArray(i) {
     return out;
 }
 
-module.exports = router;
+module.exports = {router: router, parsing: parseCSV};
