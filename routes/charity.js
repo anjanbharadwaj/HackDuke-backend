@@ -12,6 +12,7 @@ const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId;
 const lodash = require('lodash')
 const utils = require('./ParseModules');
+const FoodType = require("../models/FoodType")
 
 const multiparty = require("multiparty");
 const { request } = require('express');
@@ -52,8 +53,8 @@ router.route('/latest_request')
             if (err) return handleError(err);
 
             let arr = data[0].charityRequestIds
-            console.log("arr")
-            console.log(arr)
+            // console.log("arr")
+            // console.log(arr)
             arr.sort(function (a, b) {
                 // Turn your strings into dates, and then subtract them
                 // to get a value that is either negative, positive, or zero.
@@ -61,11 +62,32 @@ router.route('/latest_request')
                 return new Date(b.createdDate) - new Date(a.createdDate);
             });
             let bestCharityRequest = arr[0]
-            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(function(err, charityReq) {
+            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function(err, charityReq) {
                 if (err) res.status(400).json();
-                return res.status(200).json({ request: charityReq })
+                console.log("FINAL: ");
+                let groupAmountMap =new Map();
+                let temp = charityReq[0]["donationRequestIds"]
+                for (let i = 0; i < temp.length; i++) {
+                    let donation = temp[i]
+                    console.log(donation.amountLeft);
+                    console.log(donation.foodTypeId);
+                    console.log(donation._id);
+                    console.log(donation.givenDonationIds)
+                    let out = await FoodType.findById(donation.foodTypeId).exec();
+                    console.log(donation)
+                    let objj = await DonationRequest.find({_id: donation._id}).populate('givenDonationIds').exec();
+                    console.log("boo");
+                    console.log(objj);
+
+                    console.log(objj[0]);
+                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", objj[0].givenDonationIds));
+                    console.log("boo");
+                    console.log(groupAmountMap);
+
+                }
+                return res.status(200).json(groupAmountMap);
             });
-        
+
         });
 
 
@@ -73,7 +95,7 @@ router.route('/latest_request')
         // Charity
         //     .find({ _id: id })
         //     .populate({
-        //     path:     'charityRequestIds',			
+        //     path:     'charityRequestIds',
         //     populate: { path:  'donationRequestIds',
         //             model: 'DonationRequest' }
         //     })
@@ -99,7 +121,7 @@ router.route('/latest_request')
         //     } else {
         //         console.log(charity.charityRequestIds);
 
-                
+
         //         let requests = [];
         //         for (let reqId of charity.charityRequestIds) {
         //             let result = await getRequest(reqId);
@@ -257,6 +279,49 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 }
 
 
+function mapToJSON(map) {
+    let out = "{"
+    for(let key of map.keys()){
+        let getVal = map.get(key);
+        if(getVal.constructor.name == "Map") {
+            getVal = mapToJSON(getVal);
+        }
+        if (getVal.length != null && getVal.length === 0) {
+            getVal = "null";
+        }
+        out += "\"" + key + "\": " + getVal + ",";
+    }
+    out = out.substr(0, out.length - 1);
+    out += "}";
+    return out;
+}
+
+
+
+router.route('/specific-donation-request')
+    .get(async (req, res) => {
+        const { id, food_type_id } = req.body;
+        let data = await Charity.find({_id: id}).populate("charityRequestIds");
+        let arr = data[0].charityRequestIds
+        arr.sort(function (a, b) {
+            // Turn your strings into dates, and then subtract them
+            // to get a value that is either negative, positive, or zero.
+            // console.log()
+            return new Date(b.createdDate) - new Date(a.createdDate);
+        });
+        let bestCharityRequest = arr[0]
+        let charityReq = await CharityRequest.find({_id: bestCharityRequest._id}).populate({
+            path: 'donationRequestIds',
+            match: { foodTypeId: food_type_id}
+        });
+        console.log("FINAL: ");
+        let lst = charityReq.donationRequestIds
+        if (lst.length <= 0) {
+            res.status(400).json();
+        }
+        donation_Req = lst[0]
+        return donation_Req
+    });
 
 
 module.exports = router

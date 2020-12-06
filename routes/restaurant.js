@@ -8,12 +8,17 @@ const Restaurant = require('../models/Restaurant');
 const Inventory = require('../models/Inventory');
 const DonationRequest = require('../models/DonationRequest');
 const CharityRequest = require('../models/CharityRequest');
+const DonationBatch = require('../models/DonationBatch');
+
+const FoodType = require('../models/FoodType');
+
 const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId;
 const lodash = require('lodash')
 const utils = require('./ParseModulesRestaurant');
 
 const multiparty = require("multiparty");
+const GivenDonation = require('../models/GivenDonation');
 
 const saltRounds = 10;
 
@@ -28,10 +33,10 @@ router.route('/donate')
         form.parse(req, async (err, fields, files) => {
             let json_out = await utils.parsing(files["inventory"][0].path);
             restaurant = req.restaurant
-            console.log("CURRENT JSON: ")
-            console.log(json_out)
-            console.log("restaurant: ")
-            console.log(restaurant)
+            // console.log("CURRENT JSON: ")
+            // console.log(json_out)
+            // console.log("restaurant: ")
+            // console.log(restaurant)
             let restaurantId = restaurant.uid
             console.log(restaurantId)
             let donationRequests = getRestaurant(restaurantId, json_out, fields, res)
@@ -54,79 +59,77 @@ function getRestaurant(restaurantId, json_out, fields, res) {
     });
 }
 
-function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
+async function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
+    // can eventually get SPLITS from fields
     // db.charityCollection.createIndex({ location: '2dsphere' })
     Charity.find({
         location: {
          $near: {
-          $maxDistance: 10000,
+          $maxDistance: 100000000,
           $geometry: {
            type: "Point",
            coordinates: restaurant.location.coordinates
           }
          }
         }
-       }).find((error, results) => {
+       }).find(async (error, results) => {
         if (error) console.log(error);
-        console.log("DISTTANCEE")
-        console.log(results)
 
+
+        let arrOfCharityRequests = []
+        for (let i = 0; i < results.length; i++) {
+            let thisCharity = results[i]
+            let obj = {}
+            obj.charity_lat = thisCharity.location.coordinates[1]
+            obj.charity_long = thisCharity.location.coordinates[0]
+            obj.charity_id = thisCharity.id
+            let charity_req = await getLatestCharityRequest(obj.charity_id)
+            if (!charity_req){
+                continue;
+            }
+            charity_req = charity_req[0]
+            console.log("charity_req")
+            console.log(charity_req)
+            let donation_reqs = charity_req.donationRequestIds
+            let donation_reqs_clean = []
+            console.log("donation_reqs")
+            console.log(donation_reqs)
+            for (let j = 0; j < donation_reqs.length; j++) {
+                let reqdirty = donation_reqs[j]
+                let reqclean = {}
+                let food_type = {}
+                let ftid = reqdirty.foodTypeId
+                let food = await convertFoodIdToFood(ftid)
+                console.log("foodie")
+                console.log(food)
+                console.log(food[0])
+                
+                // FoodType.findById(ftid)
+                food_type.food_group = food[0].group;
+                reqclean.food_type = food_type
+                reqclean.amount_left = reqdirty.amountLeft
+                donation_reqs_clean.push(reqclean)
+                // console.log(donation_reqs_clean)
+            }
+            obj.donation_requests = donation_reqs_clean
+            // food_type.food_group
+            arrOfCharityRequests.push(obj)
+        }
         let json_restaurant = {
             "restaurant_inventory": json_out,
             "rest_id": restaurantId,
-            "max_splits": 1000,
+            "max_splits": 1000, //make it fields['splits'][0]
             "rest_lat": restaurant.location.coordinates[1],
             "rest_long": restaurant.location.coordinates[0]
         }
-
-
-        // console.log(JSON.stringify(results, 0, 2));
+        json_restaurant.charity_requests = arrOfCharityRequests;
+        console.log(json_restaurant)
+        res.json(json_restaurant)
+        
        });
 
     // CharityRequest.find
 }
-
-/*
-[ { location: { coordinates: [Array], type: 'Point' },
-    charityRequestIds:
-     [ 5fcc7ca096e0f9536459c58d,
-       5fcc7cb896e0f9536459c595,
-       5fcc7cb996e0f9536459c59e,
-       5fcc7cb996e0f9536459c5a7,
-       5fcc7cba96e0f9536459c5b0,
-       5fcc7cbb96e0f9536459c5b9 ],
-    _id: 5fcc764bd309966ea75c7dca,
-    name: 'praneeth',
-    email: 'praneeth@gmail.com',
-    password:
-     '$2b$10$78/xZwrELpekLJFuhcsWnOpkorDSJCLBX3MmTk6TUazHsD992h9Am',
-    dreamInventory: 5fcc764bd309966ea75c7dc6,
-    __v: 6 } ]
-*/
-
-/*
-{
-            "charity_id": 3,
-            "charity_lat": 89,
-            "charity_long" : 120,
-            "donation_requests": [
-                {
-                    "food_type": {
-                        "food_group": "banana"
-                    },
-
-                    "amount_left": 15
-                },
-                {
-                    "food_type": {
-                        "food_group": "orange"
-                    },
-
-                    "amount_left": 11
-                }
-            ]
-        }
-*/
 
 function verifyAuthToken(req, res, next) {
     const tokenStr = req.headers['authorization']
@@ -220,7 +223,175 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 }
 
 
+async function getLatestCharityRequest(myid, res) {
+    console.log("getLatestCharityRequest")
+    let data = await Charity.find({_id: myid}).populate("charityRequestIds");
+    let arr = data[0].charityRequestIds
+    console.log("arr")
+    console.log(arr)
+    arr.sort(function (a, b) {
+        // Turn your strings into dates, and then subtract them
+        // to get a value that is either negative, positive, or zero.
+        // console.log()
+        return new Date(b.createdDate) - new Date(a.createdDate);
+    });
+    let bestCharityRequest = arr[0]
+    if (!bestCharityRequest) {
+        return;
+    }
+    bestCharityRequest = await CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds');
+    console.log("doneLatestCharityRequest")
+    return bestCharityRequest
+    // console.log(outer);
+    // console.log("done getLatestCharityRequest")
+    // return outer;
+}
 
+async function convertFoodIdToFood(food_id, res) {
+    let data = await FoodType.find({_id: food_id});
+    console.log("FOOOOOOD")
+    // console.log(data);
+    return data;
+}
+
+async function convertFoodToFoodId(foodGroup) {
+    let data = await FoodType.find({group: foodGroup});
+    console.log("group")
+    console.log(data);
+    if (data) {
+        return data[0]._id
+    }
+    return;
+}
+
+
+
+router.route('/approved')
+    .post(async (req, res) => {
+        console.log("approved restaurant donation")
+        let arr = req.body.out
+        console.log(arr, arr.length)
+        let dest_arr = [] // add to donation batch
+        for (let i = 0; i < arr.length; i++) {
+            let dono_info = arr[i]
+            let amountChange = dono_info.amount_donated
+            let charityId = dono_info.charity_id
+            let food_type = dono_info.food_type
+            console.log("food_type")
+            console.log(food_type)
+            let foodId = await convertFoodToFoodId(food_type)
+            console.log("foodtypeid")
+            console.log(foodId)
+
+            let restaurantId = dono_info.rest_id
+
+            const given_donation = new GivenDonation({
+                restaurantId: restaurantId,
+                charityId: charityId,
+                foodTypeId: foodId,
+                donationAmount: amountChange,
+                deliveredDate: new Date()
+            })
+            await given_donation.save();
+            let given_donation_id = given_donation._id;
+            let donationRequest = await specificDonationRequest(charityId, foodId)
+            donationRequest.givenDonationIds.push(given_donation_id);
+            donationRequest.amountLeft = donationRequest.amountLeft - amountChange
+            if (donationRequest.amountLeft <= 0) {
+                donationRequest.status = false;
+            }
+            await donationRequest.save();
+            dest_arr.push(given_donation_id)
+        }
+
+        let donoBatch = new DonationBatch({
+            givenDonationIds: dest_arr,
+            createdDate: new Date()
+        });
+        await donoBatch.save();
+        console.log("changes made! ")
+
+    }
+)
+
+/*
+
+Given_Donation {
+id
+Restaurant_id
+Charity_id (destination charity)
+FoodType 
+Donation_amount (amount restaurant donated)
+today_Date
+}
+
+
+{
+    "out": [
+        {
+            "amount_donated": 0,
+            "charity_id": 1,
+            "food_type": "banana",
+            "rest_id": 2
+        },
+        {
+            "amount_donated": 11,
+            "charity_id": 2,
+            "food_type": "banana",
+            "rest_id": 2
+        },
+        {
+            "amount_donated": 24,
+            "charity_id": 2,
+            "food_type": "apple",
+            "rest_id": 2
+        },
+        {
+            "amount_donated": 0,
+            "charity_id": 2,
+            "food_type": "orange",
+            "rest_id": 2
+        },
+        {
+            "amount_donated": 4,
+            "charity_id": 3,
+            "food_type": "banana",
+            "rest_id": 2
+        },
+        {
+            "amount_donated": 9,
+            "charity_id": 3,
+            "food_type": "orange",
+            "rest_id": 2
+        }
+    ]
+}
+*/
+
+async function specificDonationRequest(id, food_type_id) {
+    let data = await Charity.find({_id: id}).populate("charityRequestIds");
+    let arr = data[0].charityRequestIds
+    arr.sort(function (a, b) {
+        // Turn your strings into dates, and then subtract them
+        // to get a value that is either negative, positive, or zero.
+        // console.log()
+        return new Date(b.createdDate) - new Date(a.createdDate);
+    });
+    let bestCharityRequest = arr[0]
+    let charityReq = await CharityRequest.find({_id: bestCharityRequest._id}).populate({
+        path: 'donationRequestIds',
+        match: { foodTypeId: food_type_id}
+    });
+    console.log("FINAL: ");
+    let lst = charityReq[0].donationRequestIds
+    console.log(lst);
+
+    if (lst.length <= 0) {
+        return;
+    }
+    donation_Req = lst[0]
+    return donation_Req
+}
 
 module.exports = router
 
