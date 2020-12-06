@@ -8,6 +8,7 @@ const CharityRequest = require('../models/CharityRequest');
 const DonationRequest = require('../models/DonationRequest');
 const GivenDonation = require('../models/GivenDonation');
 const Restaurant = require('../models/Restaurant');
+const FoodType = require('../models/FoodType');
 
 
 /*
@@ -56,6 +57,19 @@ router.use('/charity_analytics', verifyAuthToken)
 router.use('/restaurant_analytics', verifyAuthToken)
 // can access the charity by doing req.charity
 
+
+router.route('/food_type')
+    .get((req, res) => {
+        FoodType.findById(req.query.id, function(err, foodType) {
+            if (err) {
+                return res.sendStatus(403);
+            }
+            res.status(200).json(foodType);
+
+        })
+        
+    }
+)
 
 /*
 function getDonations(email)

@@ -44,9 +44,10 @@ router.route('/request')
 
 router.route('/latest_request')
     .get(async (req, res) => {
-        const { id } = req.body;
+        console.log(req);
+        const { id } = req.query;
 
-
+        console.log(id);
         Charity.find({_id: id}).populate("charityRequestIds").exec(function(err,data) {
             if (err) return handleError(err);
 
@@ -121,6 +122,7 @@ router.route('/latest_request')
 
 router.route('/requests')
     .get(async (req, res) => {
+
         const { id } = req.body;
         Charity.findOne({ _id: id }, async function (err, charity) {
             if (err) {
