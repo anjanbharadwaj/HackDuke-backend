@@ -285,4 +285,30 @@ function mapToJSON(map) {
 
 
 
+router.route('/specific-donation-request')
+    .get(async (req, res) => {
+        const { id, food_type_id } = req.body;
+        let data = await Charity.find({_id: id}).populate("charityRequestIds");
+        let arr = data[0].charityRequestIds
+        arr.sort(function (a, b) {
+            // Turn your strings into dates, and then subtract them
+            // to get a value that is either negative, positive, or zero.
+            // console.log()
+            return new Date(b.createdDate) - new Date(a.createdDate);
+        });
+        let bestCharityRequest = arr[0]
+        let charityReq = await CharityRequest.find({_id: bestCharityRequest._id}).populate({
+            path: 'donationRequestIds',
+            match: { foodTypeId: food_type_id}
+        });
+        console.log("FINAL: ");
+        let lst = charityReq.donationRequestIds
+        if (lst.length <= 0) {
+            res.status(400).json();
+        }
+        donation_Req = lst[0]
+        return donation_Req
+    });
+
+
 module.exports = router

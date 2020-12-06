@@ -125,6 +125,7 @@ router.route('/register')
 
                                 restaurant.save((err)=>{
                                     if (err){
+                                        console.log('restaurant save')
                                         res.status(400).json({error: err, message: "save error"})
                                     }else{
                                         res.status(200).json({message: "success"})
@@ -219,7 +220,7 @@ function createInventory() {
 async function completeRegisterCharity(files, fields, hashedPassword, res){
 
     console.log("SUCCESS FILE FOUND")
-        console.log(fields)
+        // console.log(fields)
         let dreamInventory = await utils.parsing(files["inventory"][0].path);
         // console.log("SUCCESS FILE FOUND")
         // console.log(dreamInventory)
@@ -234,7 +235,7 @@ async function completeRegisterCharity(files, fields, hashedPassword, res){
             dreamInventory: dreamInventory._id,
             charityRequestIds: []
         })
-
+        console.log(charity)
         charity.save((err)=>{
             if (err){
                 console.log("save failed")
