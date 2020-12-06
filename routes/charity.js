@@ -35,11 +35,9 @@ router.route('/request')
             console.log(currentInventory)
             let createdDate = new Date();
             let charityId = charity.uid
-            let donationRequests = getDreamInventory(charityId, currentInventory)
+            let donationRequests = getDreamInventory(charityId, currentInventory, res)
             res.status(200).json({message: "success"});
         });
-        
-        
     }
 )
 
@@ -51,9 +49,9 @@ function verifyAuthToken(req, res, next) {
         jwt.verify(authToken, secretKey, (err, charity) => {
             if (err) {
               return res.sendStatus(403)
-            } 
+            }
             req.charity = charity
-            next() 
+            next()
           })
     } else {
         return res.sendStatus(403)
@@ -61,16 +59,21 @@ function verifyAuthToken(req, res, next) {
 }
 
 
-function getDreamInventory(charityId, currentInventory) {
+function getDreamInventory(charityId, currentInventory, res) {
     console.log(charityId)
     let foundCharity = Charity.findById(charityId).populate({
         path: 'dreamInventory'
     }).exec(function(err, charity) {
+
+        if (err) {
+            return res.sendStatus(403);
+        }
+
         // console.log(charity);
         console.log('Found dream inventory: ', charity.dreamInventory);
         let arr = charity.dreamInventory.foodTypeWrapperIds;
         let arr2 = currentInventory.foodTypeWrapperIds;
- 
+
         generateDonationRequests(charity, charityId, arr, arr2, currentInventory);
     });
     // return foundCharity;
@@ -81,13 +84,13 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
     let currMap = new Map()
     for (let i = 0; i < dreamFoodWrappers.length; i++) {
         let foodTypeWrapper = dreamFoodWrappers[i];
-        let dreamFoodTypeId = foodTypeWrapper.foodTypeId 
+        let dreamFoodTypeId = foodTypeWrapper.foodTypeId
         let dreamAmount = foodTypeWrapper.amount
         dreamMap.set(""+dreamFoodTypeId, dreamAmount)
     }
     for (let i = 0; i < currentFoodWrappers.length; i++) {
         let foodTypeWrapper = currentFoodWrappers[i];
-        let currentFoodTypeId = foodTypeWrapper.foodTypeId 
+        let currentFoodTypeId = foodTypeWrapper.foodTypeId
         let currentAmount = foodTypeWrapper.amount
         currMap.set(""+currentFoodTypeId, currentAmount)
     }
@@ -99,7 +102,7 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
     for (const [key, value] of dreamMap.entries()) {
         console.log(key.constructor.name)
-        
+
         let difference = value;
         if (currMap.has(key)) {
             console.log("Overlap")
@@ -138,4 +141,3 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 
 module.exports = router
-
