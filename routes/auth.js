@@ -13,47 +13,6 @@ const utils = require('./ParseModules');
 
 const secretKey = "hackdukeisamazing"
 
-router.use('/user', verifyAuthToken)
-router.route('/user')
-    .get(async (req, res) => {
-        console.log(req.user);
-
-        Charity.findOne(req.user.id, function (err, charity) {
-            if (err) {
-                Restaurant.findOne(req.user.id, function (err, restaurant) {
-                    if (err) {
-                        return res.sendStatus(404)
-                    } else {
-                        return res.status(200).json(restaurant)
-                        console.log(restaurant);
-                    }
-                })
-            } else {
-                return res.status(200).json(charity)
-            }
-        })
-        
-    })
-
-
-
-function verifyAuthToken(req, res, next) {
-    const tokenStr = req.headers['authorization']
-    if (tokenStr) {
-        const authToken = tokenStr.split(' ')[1]
-        console.log(authToken)
-        jwt.verify(authToken, secretKey, (err, user) => {
-            if (err) {
-              return res.sendStatus(403)
-            } 
-            req.user = user
-            next() 
-          })
-    } else {
-        return res.sendStatus(403)
-    }
-}
-
 router.route('/register')
     .post(async (req, res) => {
         console.log("requested register")
@@ -117,7 +76,7 @@ router.route('/register')
                                     password: hashedPassword,
                                     location: {
                                         type: "Point",
-                                        coordinates: [req.body.longitude, req.body.latitude]
+                                        coordinates: [req.body.latitude, req.body.longitude]
                                     },
                                     donationBatches: []
                                 })
@@ -228,7 +187,7 @@ async function completeRegisterCharity(files, fields, hashedPassword, res){
             password: hashedPassword,
             location: {
                 type: "Point",
-                coordinates: [fields['longitude'][0], fields['latitude'][0]]
+                coordinates: [fields['latitude'][0], fields['longitude'][0]]
             },
             dreamInventory: dreamInventory._id,
             charityRequestIds: []
