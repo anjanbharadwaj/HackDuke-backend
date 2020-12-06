@@ -15,7 +15,7 @@ const utils = require('./ParseModules');
 const FoodType = require("../models/FoodType")
 
 const multiparty = require("multiparty");
-const { request } = require('express');
+const {request} = require('express');
 
 const saltRounds = 10;
 
@@ -25,30 +25,29 @@ router.use('/request', verifyAuthToken)
 
 router.route('/request')
     .post(async (req, res) => {
-        console.log("generating charity request")
-        let form = new multiparty.Form();
+            console.log("generating charity request")
+            let form = new multiparty.Form();
 
 
-
-        form.parse(req, async (err, fields, files) => {
-            let currentInventory = await utils.parsing(files["inventory"][0].path);
-            charity = req.charity
-            console.log("CURRENT INVENTORY: ")
-            console.log(currentInventory)
-            let createdDate = new Date();
-            let charityId = charity.uid
-            let donationRequests = getDreamInventory(charityId, currentInventory, res)
-            res.status(200).json({message: "success"});
-        });
-    }
+            form.parse(req, async (err, fields, files) => {
+                let currentInventory = await utils.parsing(files["inventory"][0].path);
+                charity = req.charity
+                console.log("CURRENT INVENTORY: ")
+                console.log(currentInventory)
+                let createdDate = new Date();
+                let charityId = charity.uid
+                let donationRequests = getDreamInventory(charityId, currentInventory, res)
+                res.status(200).json({message: "success"});
+            });
+        }
     )
 
 router.route('/latest_request')
     .post(async (req, res) => {
-        const { id } = req.body;
+        const {id} = req.body;
 
 
-        Charity.find({_id: id}).populate("charityRequestIds").exec(function(err,data) {
+        Charity.find({_id: id}).populate("charityRequestIds").exec(function (err, data) {
             if (err) return handleError(err);
 
             let arr = data[0].charityRequestIds
@@ -61,23 +60,23 @@ router.route('/latest_request')
                 return new Date(b.createdDate) - new Date(a.createdDate);
             });
             let bestCharityRequest = arr[0]
-            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function(err, charityReq) {
+            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function (err, charityReq) {
                 if (err) res.status(400).json();
                 console.log("FINAL: ");
-                let groupAmountMap =new Map();
+                let groupAmountMap = new Map();
                 for (let donation of charityReq[0]["donationRequestIds"]) {
                     console.log(donation.amountLeft);
                     console.log(donation.foodTypeId);
-                    console.log(donation.givenDonationIds)
                     let out = await FoodType.findById(donation.foodTypeId).exec();
                     console.log(out.group);
                     groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", donation.givenDonationIds));
                 }
+
+                console.log(mapToJSON(groupAmountMap));
                 return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
             });
 
         });
-
 
 
         // Charity
@@ -132,8 +131,8 @@ router.route('/latest_request')
 
 router.route('/requests')
     .get(async (req, res) => {
-        const { id } = req.body;
-        Charity.findOne({ _id: id }, async function (err, charity) {
+        const {id} = req.body;
+        Charity.findOne({_id: id}, async function (err, charity) {
             if (err) {
                 console.log(err);
                 return res.sendStatus(403)
@@ -148,7 +147,7 @@ router.route('/requests')
                         requests.push(result);
                     }
                 }
-                return res.status(200).json({ requests })
+                return res.status(200).json({requests})
             }
         })
 
@@ -156,7 +155,7 @@ router.route('/requests')
 
 
 async function getRequest(id) {
-    return await CharityRequest.findOne({ _id: id }, function (err, request) {
+    return await CharityRequest.findOne({_id: id}, function (err, request) {
         if (err) {
             return res.sendStatus(403)
         } else {
@@ -167,8 +166,6 @@ async function getRequest(id) {
 }
 
 
-
-
 function verifyAuthToken(req, res, next) {
     const tokenStr = req.headers['authorization']
     if (tokenStr) {
@@ -176,11 +173,11 @@ function verifyAuthToken(req, res, next) {
         console.log(authToken)
         jwt.verify(authToken, secretKey, (err, charity) => {
             if (err) {
-              return res.sendStatus(403)
+                return res.sendStatus(403)
             }
             req.charity = charity
             next()
-          })
+        })
     } else {
         return res.sendStatus(403)
     }
@@ -191,7 +188,7 @@ function getDreamInventory(charityId, currentInventory, res) {
     console.log(charityId)
     let foundCharity = Charity.findById(charityId).populate({
         path: 'dreamInventory'
-    }).exec(function(err, charity) {
+    }).exec(function (err, charity) {
 
         if (err) {
             return res.sendStatus(403);
@@ -268,13 +265,21 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 function mapToJSON(map) {
     let out = "{"
-    for(let key of map.keys()){
+    for (let key of map.keys()) {
         let getVal = map.get(key);
-        if(getVal.constructor.name == "Map") {
+        if (getVal.constructor.name == "Map") {
             getVal = mapToJSON(getVal);
         }
         if (getVal.length != null && getVal.length === 0) {
             getVal = "null";
+        } else if (getVal.constructor.name === "CoreMongooseArray" && getVal.length > 0) {
+            let temp_getVal = "";
+            getVal = getVal.toObject();
+            for(let i = 0; i < getVal.length; i++) {
+                temp_getVal += "\"" + getVal[i] + "\",";
+            }
+            temp_getVal = temp_getVal.substring(0, temp_getVal.length - 1);
+            getVal = "[" + temp_getVal + "]";
         }
         out += "\"" + key + "\": " + getVal + ",";
     }
@@ -284,10 +289,9 @@ function mapToJSON(map) {
 }
 
 
-
 router.route('/specific-donation-request')
     .get(async (req, res) => {
-        const { id, food_type_id } = req.body;
+        const {id, food_type_id} = req.body;
         let data = await Charity.find({_id: id}).populate("charityRequestIds");
         let arr = data[0].charityRequestIds
         arr.sort(function (a, b) {
@@ -299,7 +303,7 @@ router.route('/specific-donation-request')
         let bestCharityRequest = arr[0]
         let charityReq = await CharityRequest.find({_id: bestCharityRequest._id}).populate({
             path: 'donationRequestIds',
-            match: { foodTypeId: food_type_id}
+            match: {foodTypeId: food_type_id}
         });
         console.log("FINAL: ");
         let lst = charityReq.donationRequestIds
