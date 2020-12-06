@@ -4,6 +4,9 @@ const mongoose = require('mongoose')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Charity = require('../models/Charity');
+const CharityRequest = require('../models/CharityRequest');
+const DonationRequest = require('../models/DonationRequest');
+const GivenDonation = require('../models/GivenDonation');
 const Restaurant = require('../models/Restaurant');
 
 
@@ -53,33 +56,157 @@ router.use('/charity_analytics', verifyAuthToken)
 router.use('/restaurant_analytics', verifyAuthToken)
 // can access the charity by doing req.charity
 
+
+/*
+function getDonations(email)
+function totalReceived(givenDonations)
+function totalReceivedOnDate(givenDonations, date)
+function dateSame(date, date2)
+function topRestaurants(k, givenDonations)
+function lineChartData(givenDonations)
+function poundsToEmissions(givenDonations)
+*/
+
 router.route('/charity_analytics')
     .post((req, res) => {
         console.log("generating charity analytics");
-        res.status(200).json({message: totalReceivedOnDate(req.body.givenDonations, "01 Jan 2000 00:00:00 GMT")});
+        let givenDonations = getDonations(req.body.email)
+        res.status(200).json({message: givenDonations});
     }
 )
+
+router.route('/charity_total_received')
+    .post((req, res) => {
+        console.log("generating charity analytics");
+        let givenDonations = getDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: totalReceived(givenDonations)});
+    }
+)
+
+router.route('/charity_top_restaurants')
+    .post((req, res) => {
+        console.log("generating charity analytics");
+        let givenDonations = getDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: topRestaurants(req.body.k, givenDonations)});
+    }
+)
+
+router.route('/charity_line_chart_data')
+    .post((req, res) => {
+        console.log("generating charity analytics");
+        let givenDonations = getDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: lineChartData(givenDonations)});
+    }
+)
+
+router.route('/charity_emissions_saved')
+    .post((req, res) => {
+        console.log("generating charity analytics");
+        let givenDonations = getDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: poundsToEmissions(givenDonations)});
+    }
+)
+
+
+/*
+function restaurantEnvironmentalImpact(restaurantDonations)
+function totalRestaurantDonations(restaurantDonations)
+function charitiesDonatedTo(k, restaurantDonations)
+function restaurantLineChartData(restaurantDonations)
+*/
 
 router.route('/restaurant_analytics')
     .post((req, res) => {
         console.log("generating restaurant analytics");
-        res.status(200).json({message: totalRestaurantDonations(req.body.givenDonations)});
+        let givenDonations = getRestaurantDonations(req.body.email)
+        res.status(200).json({message: givenDonations});
+    }
+)
+
+router.route('/restaurant_total_donated')
+    .post((req, res) => {
+        console.log("generating restaurant analytics");
+        let givenDonations = getRestaurantDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: totalRestaurantDonations(givenDonations)});
+    }
+)
+
+router.route('/restaurant_top_charities')
+    .post((req, res) => {
+        console.log("generating restaurant analytics");
+        let givenDonations = getRestaurantDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: charitiesDonatedTo(req.body.k, givenDonations)});
+    }
+)
+
+router.route('/restaurant_line_chart_data')
+    .post((req, res) => {
+        console.log("generating restaurant analytics");
+        let givenDonations = getRestaurantDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: restaurantLineChartData(givenDonations)});
+    }
+)
+
+router.route('/restaurant_emissions_saved')
+    .post((req, res) => {
+        console.log("generating restaurant analytics");
+        let givenDonations = getRestaurantDonations(req.body.email)
+        // givenDonations = req.body.givenDonations
+        res.status(200).json({message: restaurantEnvironmentalImpact(givenDonations)});
     }
 )
 
 // RESTAURANT ANALYTICS
 
-function getRestaurantDonations(givenDonations, restaurant_id) {
-    out = [];
+// function getRestaurantDonations(givenDonations, restaurant_id) {
+//     out = [];
+//
+//     for (donation of givenDonations) {
+//         if (donation["restaurantId"] === restaurant_id) {
+//             out.push(donation);
+//         }
+//     }
+//
+//     return out;
+// }
 
-    for (donation of givenDonations) {
-        if (donation["restaurantId"] === restaurant_id) {
-            out.push(donation);
-        }
-    }
 
-    return out;
+function getRestaurantDonations(email) {
+  var totalDonations = []
+  Restaurant.findOne({ email: email}, function (err, restaurant) {
+      if (err) {
+        console.log(err);
+      } else {
+          donationBatches = restaurant.donationBatches;
+          for(var i = 0; i < donationBatches.length; i++){
+              DonationBatch.findById(donationBatches[i], function(err, db) {
+                  if (err) {
+                      console.log(err);
+                  } else {
+                      givenDonationIds = db.givenDonationIds;
+                      for(var j = 0; j < givenDonationIds.length; j++) {
+
+                          GivenDonation.findById(givenDonationIds[j], function(err, gd) {
+                              totalDonations.push(gd);
+                          })
+                      }
+                  }
+              })
+      }
+  }})
+
+  return totalDonations;
 }
+
+
+
 
 
 function restaurantEnvironmentalImpact(restaurantDonations) {
@@ -100,10 +227,10 @@ function charitiesDonatedTo(k, restaurantDonations) {
     let charities = {};
 
     for (let donation of restaurantDonations) {
-        if (charities.hasOwnProperty(donation["charity_id"])) {
-            charities[donation["restaurantId"]] += donation["donationAmount"];
+        if (charities.hasOwnProperty(donation["charityId"])) {
+            charities[donation["charityId"]] += donation["donationAmount"];
         } else {
-            charities[donation["restaurantId"]] = donation["donationAmount"];
+            charities[donation["charityId"]] = donation["donationAmount"];
         }
     }
 
@@ -136,24 +263,25 @@ function getDonations(email) {
         console.log(err);
       } else {
           charityReq = charity.charityRequestIds;
-          for(var i = 0; i < charityReq.length; i++){
-            CharityRequests.findOne({charityRequestIds : charityReq[i]}, function(err, ch_req){
-              if(err){
-                console.log(err);
-              }else{
-                donationReq = ch_req.donationRequestIds;
-                for(var j = 0; j < donationReq.length; j++){
-                  DonationRequests.findOne({donationRequestIds: donationReq[j]}, function(err, d_r){
-                    givenDonations = d_r.givenDonationIds;
-                    for(var k = 0; k < givenDonations.length; k++){
-                        GivenDonation.findOne({givenDonationIds: givenDonations[k]}, function(err, g_dr) {
-                            totalDonations.push(g_dr);
+          console.log(charityReq);
+          for(var i = 0; i < charityReq.length; i++) {
+              CharityRequest.findById(charityReq[i], function(err, ch_req) {
+                  if(err){
+                    console.log(err);
+                  }else{
+                    donationReq = ch_req.donationRequestIds;
+                    for(var j = 0; j < donationReq.length; j++){
+                        DonationRequest.findById(donationReq[j], function(err, d_r) {
+                            givenDonations = d_r.givenDonationIds;
+                            for(var k = 0; k < givenDonations.length; k++){
+                                GivenDonation.findById(givenDonation[k], function(err, g_dr) {
+                                    totalDonations.push(g_dr);
+                                })
+                            }
                         })
                     }
-                  })
-                }
-              }
-            })
+                  }
+              })
           }
       }
   })
@@ -194,7 +322,7 @@ function dateSame(date, date2){
   d1.setHours(0,0,0,0);
   d2.setHours(0,0,0,0);
 
-  return d1.getTime() == d2.getTime();
+  return (d1.getDate() === d2.getDate()) && (d1.getMonth() == d2.getMonth()) && (d1.getFullYear() == d2.getFullYear());
 }
 
 
@@ -249,9 +377,6 @@ function lineChartData(givenDonations) {
     sortable.sort(function(a, b) {
         d1 = Date.parse(a[0]);
         d2 = Date.parse(b[0]);
-
-        d1.setHours(0,0,0,0);
-        d2.setHours(0,0,0,0);
 
         return d1 - d2;
     })
