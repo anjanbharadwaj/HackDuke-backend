@@ -18,6 +18,7 @@
     "lodash": "^4.17.20",
     "mongoose": "^5.11.4",
     "mongoose-float": "^1.0.4",
+    "multer": "^1.4.2",
     "multiparty": "^4.2.2",
     "neat-csv": "^5.2.0",
     "pandas-js": "^0.2.4"

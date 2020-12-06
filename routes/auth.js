@@ -6,42 +6,53 @@ const jwt = require('jsonwebtoken');
 const Charity = require('../models/Charity');
 const Restaurant = require('../models/Restaurant');
 const ObjectId = mongoose.Types.ObjectId;
-
+const multiparty = require("multiparty");
 const saltRounds = 10;
+const utils = require('./ParseModules');
 
 const secretKey = "hackdukeisamazing"
 
 router.route('/register')
-    .post((req, res) => {
+    .post(async (req, res) => {
         console.log("requested register")
         const usertype = req.query.usertype
         console.log("type: " + usertype)
         if (usertype == "charity") {
             console.log("requested charity register")
-            Charity.findOne({ email: req.body.email}, function (err, charity) {
-                if (err) {
-                    console.log("err1")
-                    res.status(400).json({error: err})
-                } else {
-                    if (charity) {
-                        console.log("err2: existing")
+            let form = new multiparty.Form();
+            form.parse(req, async (err, fields, files) => {
+                console.log("fields")
+                console.log(fields)
+                console.log("email")
+                console.log(fields['email'][0])
+                Charity.findOne({ email: fields['email'][0]}, function (err, charity) {
+                    if (err) {
+                        console.log("err1")
                         res.status(400).json({error: err})
-                        // already exists
                     } else {
-                        bcrypt.hash(req.body.password, saltRounds, function(err, hashedPassword) {
-                            if (err) {
-                                console.log("encryption failed")
-                                res.status(400).json({error: err, message: "encryption error"})
-                            }
-                            else {
-                                completeRegisterCharity(req, hashedPassword);
-                                
-                            }
-                        })
-                        
+                        if (charity) {
+                            console.log("err2: existing")
+                            res.status(400).json({error: err})
+                            // already exists
+                        } else {
+
+                            
+                            bcrypt.hash(fields['password'][0], saltRounds, async function(err, hashedPassword) {
+                                if (err) {
+                                    console.log("encryption failed")
+                                    res.status(400).json({error: err, message: "encryption error"})
+                                }
+                                else {
+                                    await completeRegisterCharity(files, fields, hashedPassword, res);
+                                    
+                                }
+                            })
+                            
+                        }
                     }
-                }
+                });
             });
+            
     
     
         } else {
@@ -160,18 +171,19 @@ function createInventory() {
 }
 
 
-function completeRegisterCharity(req, hashedPassword){
-    let form = new multiparty.Form();
-    form.parse(req, async (err, fields, files) => {
+async function completeRegisterCharity(files, fields, hashedPassword, res){
+    
+    console.log("SUCCESS FILE FOUND")
+        console.log(fields)
         let dreamInventory = await utils.parsing(files["inventory"][0].path);
-        console.log("SUCCESS FILE FOUND")
-        console.log(dreamInventory)
+        // console.log("SUCCESS FILE FOUND")
+        // console.log(dreamInventory)
         const charity = new Charity({
-            name: req.body.name,
-            email: req.body.email,
+            name: fields['name'][0],
+            email: fields['email'][0],
             password: hashedPassword,
-            latitude: req.body.latitude,
-            longitude: req.body.longitude,
+            latitude: fields['latitude'][0],
+            longitude: fields['longitude'][0],
             dreamInventory: dreamInventory._id,
             charityRequestIds: []
         })
@@ -185,8 +197,6 @@ function completeRegisterCharity(req, hashedPassword){
             }
     
         });
-    });
-    
     
 }
 
