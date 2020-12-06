@@ -34,14 +34,14 @@ router.route('/donate')
             console.log(restaurant)
             let restaurantId = restaurant.uid
             console.log(restaurantId)
-            let donationRequests = getRestaurant(restaurantId, json_out, res)
+            let donationRequests = getRestaurant(restaurantId, json_out, fields, res)
         });
         
         
     }
 )
 
-function getRestaurant(restaurantId, json_out, res) {
+function getRestaurant(restaurantId, json_out, fields, res) {
     Restaurant.findById(mongoose.Types.ObjectId(restaurantId), function(err, restaurant) {
         if (err || !restaurant) {
             console.log("err1")
@@ -49,16 +49,17 @@ function getRestaurant(restaurantId, json_out, res) {
             console.log(restaurant)
             res.status(400).json({error: err})
         } else {
-            grabCharityRequests(restaurant, json_out);
+            grabCharityRequests(restaurant, fields, json_out, res);
         }
     });
 }
 
-function grabCharityRequests(restaurant, json_out) {
-    CharityRequest.find({
+function grabCharityRequests(restaurant, fields, json_out, res) {
+    // db.charityCollection.createIndex({ location: '2dsphere' })
+    Charity.find({
         location: {
          $near: {
-          $maxDistance: 10000,
+          $maxDistance: 1,
           $geometry: {
            type: "Point",
            coordinates: restaurant.location.coordinates
@@ -68,6 +69,7 @@ function grabCharityRequests(restaurant, json_out) {
        }).find((error, results) => {
         if (error) console.log(error);
         console.log("DISTTANCEE")
+        console.log()
         console.log(JSON.stringify(results, 0, 2));
        });
     // CharityRequest.find

@@ -10,4 +10,4 @@ const charityRequestSchema = new Schema({
         required: true
     }
 }, {collection: 'charityRequestCollection'})
-module.exports = mongoose.model('CharityReuqest', charityRequestSchema)
+module.exports = mongoose.model('CharityRequest', charityRequestSchema)
