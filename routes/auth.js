@@ -122,8 +122,8 @@ router.route('/register')
                                     email: req.body.email,
                                     password: hashedPassword,
                                     location: {
-                                        type: "Point",
-                                        coordinates: [req.body.latitude, req.body.longitude]
+                                        "type": "Point",
+                                        coordinates: [req.body.longitude, req.body.latitude]
                                     },
                                     donationBatches: []
                                 })
