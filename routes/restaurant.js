@@ -8,6 +8,8 @@ const Restaurant = require('../models/Restaurant');
 const Inventory = require('../models/Inventory');
 const DonationRequest = require('../models/DonationRequest');
 const CharityRequest = require('../models/CharityRequest');
+const FoodType = require('../models/FoodType');
+
 const Schema = mongoose.Schema
 const ObjectId = Schema.Types.ObjectId;
 const lodash = require('lodash')
@@ -28,10 +30,10 @@ router.route('/donate')
         form.parse(req, async (err, fields, files) => {
             let json_out = await utils.parsing(files["inventory"][0].path);
             restaurant = req.restaurant
-            console.log("CURRENT JSON: ")
-            console.log(json_out)
-            console.log("restaurant: ")
-            console.log(restaurant)
+            // console.log("CURRENT JSON: ")
+            // console.log(json_out)
+            // console.log("restaurant: ")
+            // console.log(restaurant)
             let restaurantId = restaurant.uid
             console.log(restaurantId)
             let donationRequests = getRestaurant(restaurantId, json_out, fields, res)
@@ -54,7 +56,8 @@ function getRestaurant(restaurantId, json_out, fields, res) {
     });
 }
 
-function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
+async function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
+    // can eventually get SPLITS from fields
     // db.charityCollection.createIndex({ location: '2dsphere' })
     Charity.find({
         location: {
@@ -66,21 +69,60 @@ function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
           }
          }
         }
-       }).find((error, results) => {
+       }).find(async (error, results) => {
         if (error) console.log(error);
-        console.log("DISTTANCEE")
-        console.log(results)
 
+
+        let arrOfCharityRequests = []
+        for (let i = 0; i < results.length; i++) {
+            let thisCharity = results[i]
+            let obj = {}
+            obj.charity_lat = thisCharity.location.coordinates[1]
+            obj.charity_long = thisCharity.location.coordinates[0]
+            obj.charity_id = thisCharity.id
+            let charity_req = await getLatestCharityRequest(obj.charity_id)
+            if (!charity_req){
+                continue;
+            }
+            charity_req = charity_req[0]
+            console.log("charity_req")
+            console.log(charity_req)
+            let donation_reqs = charity_req.donationRequestIds
+            let donation_reqs_clean = []
+            console.log("donation_reqs")
+            console.log(donation_reqs)
+            for (let j = 0; j < donation_reqs.length; j++) {
+                let reqdirty = donation_reqs[j]
+                let reqclean = {}
+                let food_type = {}
+                let ftid = reqdirty.foodTypeId
+                let food = await convertFoodIdToFood(ftid)
+                console.log("foodie")
+                console.log(food)
+                console.log(food[0])
+                
+                // FoodType.findById(ftid)
+                food_type.food_group = food[0].group;
+                reqclean.food_type = food_type
+                reqclean.amount_left = reqdirty.amountLeft
+                donation_reqs_clean.push(reqclean)
+                // console.log(donation_reqs_clean)
+            }
+            obj.donation_requests = donation_reqs_clean
+            // food_type.food_group
+            arrOfCharityRequests.push(obj)
+        }
         let json_restaurant = {
             "restaurant_inventory": json_out,
             "rest_id": restaurantId,
-            "max_splits": 1000,
+            "max_splits": 1000, //make it fields['splits'][0]
             "rest_lat": restaurant.location.coordinates[1],
             "rest_long": restaurant.location.coordinates[0]
         }
-
-
-        // console.log(JSON.stringify(results, 0, 2));
+        json_restaurant.charity_requests = arrOfCharityRequests;
+        console.log(json_restaurant)
+        res.json(json_restaurant)
+        
        });
 
     // CharityRequest.find
@@ -219,6 +261,34 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 }
 
+
+async function getLatestCharityRequest(myid, res) {
+    console.log("getLatestCharityRequest")
+    let data = await Charity.find({_id: myid}).populate("charityRequestIds");
+    let arr = data[0].charityRequestIds
+    console.log("arr")
+    console.log(arr)
+    arr.sort(function (a, b) {
+        // Turn your strings into dates, and then subtract them
+        // to get a value that is either negative, positive, or zero.
+        // console.log()
+        return new Date(b.createdDate) - new Date(a.createdDate);
+    });
+    let bestCharityRequest = arr[0]
+    bestCharityRequest = await CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds');
+    console.log("doneLatestCharityRequest")
+    return bestCharityRequest
+    // console.log(outer);
+    // console.log("done getLatestCharityRequest")
+    // return outer;
+}
+
+async function convertFoodIdToFood(food_id, res) {
+    let data = await FoodType.find({_id: food_id});
+    console.log("FOOOOOOD")
+    // console.log(data);
+    return data;
+}
 
 
 
