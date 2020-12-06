@@ -13,6 +13,48 @@ const utils = require('./ParseModules');
 
 const secretKey = "hackdukeisamazing"
 
+router.use('/user', verifyAuthToken)
+router.route('/user')
+    .get(async (req, res) => {
+        console.log(req.user);
+
+        Charity.findOne(req.user.id, function (err, charity) {
+            if (err) {
+                Restaurant.findOne(req.user.id, function (err, restaurant) {
+                    if (err) {
+                        return res.sendStatus(404)
+                    } else {
+                        return res.status(200).json(restaurant)
+                        console.log(restaurant);
+                    }
+                })
+            } else {
+                return res.status(200).json(charity)
+            }
+        })
+
+    })
+
+
+
+function verifyAuthToken(req, res, next) {
+    const tokenStr = req.headers['authorization']
+    if (tokenStr) {
+        const authToken = tokenStr.split(' ')[1]
+        console.log(authToken)
+        jwt.verify(authToken, secretKey, (err, user) => {
+            if (err) {
+              return res.sendStatus(403)
+            }
+            req.user = user
+            next()
+          })
+    } else {
+        return res.sendStatus(403)
+    }
+}
+
+
 router.route('/register')
     .post(async (req, res) => {
         console.log("requested register")
@@ -37,7 +79,7 @@ router.route('/register')
                             // already exists
                         } else {
 
-                            
+
                             bcrypt.hash(fields['password'][0], saltRounds, async function(err, hashedPassword) {
                                 if (err) {
                                     console.log("encryption failed")
@@ -45,17 +87,17 @@ router.route('/register')
                                 }
                                 else {
                                     await completeRegisterCharity(files, fields, hashedPassword, res);
-                                    
+
                                 }
                             })
-                            
+
                         }
                     }
                 });
             });
-            
-    
-    
+
+
+
         } else {
             Restaurant.findOne({ email: req.body.email}, function (err, restaurant) {
                 if (err) {
@@ -80,25 +122,25 @@ router.route('/register')
                                     },
                                     donationBatches: []
                                 })
-                                
+
                                 restaurant.save((err)=>{
                                     if (err){
                                         res.status(400).json({error: err, message: "save error"})
                                     }else{
                                         res.status(200).json({message: "success"})
                                     }
-                    
+
                                 });
                             }
                         })
-                        
+
                     }
                 }
             });
-    
+
         }
-        
-      
+
+
     }
 )
 
@@ -137,7 +179,7 @@ function loginCharity(email, password, res) {
             }
         }
     });
-    
+
 }
 
 function loginRestaurant(email, password, res) {
@@ -166,7 +208,7 @@ function loginRestaurant(email, password, res) {
             }
         }
     });
-    
+
 }
 
 function createInventory() {
@@ -175,7 +217,7 @@ function createInventory() {
 
 
 async function completeRegisterCharity(files, fields, hashedPassword, res){
-    
+
     console.log("SUCCESS FILE FOUND")
         console.log(fields)
         let dreamInventory = await utils.parsing(files["inventory"][0].path);
@@ -200,9 +242,9 @@ async function completeRegisterCharity(files, fields, hashedPassword, res){
             }else{
                 res.status(200).json({message: "success"})
             }
-    
+
         });
-    
+
 }
 
 module.exports = router
