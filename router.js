@@ -32,6 +32,9 @@ app.use('/auth', authRouter)
 const charityRouter = require('./routes/charity.js')
 app.use('/charity', charityRouter)
 
+const restaurantRouter = require('./routes/restaurant.js')
+app.use('/restaurant', restaurantRouter)
+
 const analyticsRouter = require('./routes/analytics.js')
 app.use('/analytics', analyticsRouter)
 

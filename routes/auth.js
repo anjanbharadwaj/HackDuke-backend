@@ -34,26 +34,8 @@ router.route('/register')
                                 res.status(400).json({error: err, message: "encryption error"})
                             }
                             else {
-                                const charity = new Charity({
-                                    name: req.body.name,
-                                    email: req.body.email,
-                                    password: hashedPassword,
-                                    locationAddress: req.body.locationAddress,
-                                    latitude: req.body.latitude,
-                                    longitude: req.body.longitude,
-                                    dreamInventory: ObjectId(req.body.dreamInventory),
-                                    charityRequestIds: req.body.charityRequestIds
-                                })
+                                completeRegisterCharity(req, hashedPassword);
                                 
-                                charity.save((err)=>{
-                                    if (err){
-                                        console.log("save failed")
-                                        res.status(400).json({error: err, message: "save error"})
-                                    }else{
-                                        res.status(200).json({message: "success"})
-                                    }
-                    
-                                });
                             }
                         })
                         
@@ -80,7 +62,9 @@ router.route('/register')
                                     name: req.body.name,
                                     email: req.body.email,
                                     password: hashedPassword,
-                                    locationAddress: req.body.locationAddress
+                                    latitude: req.body.latitude,
+                                    longitude: req.body.longitude,
+                                    donationBatches: []
                                 })
                                 
                                 restaurant.save((err)=>{
@@ -173,6 +157,37 @@ function loginRestaurant(email, password, res) {
 
 function createInventory() {
 
+}
+
+
+function completeRegisterCharity(req, hashedPassword){
+    let form = new multiparty.Form();
+    form.parse(req, async (err, fields, files) => {
+        let dreamInventory = await utils.parsing(files["inventory"][0].path);
+        console.log("SUCCESS FILE FOUND")
+        console.log(dreamInventory)
+        const charity = new Charity({
+            name: req.body.name,
+            email: req.body.email,
+            password: hashedPassword,
+            latitude: req.body.latitude,
+            longitude: req.body.longitude,
+            dreamInventory: dreamInventory._id,
+            charityRequestIds: []
+        })
+
+        charity.save((err)=>{
+            if (err){
+                console.log("save failed")
+                res.status(400).json({error: err, message: "save error"})
+            }else{
+                res.status(200).json({message: "success"})
+            }
+    
+        });
+    });
+    
+    
 }
 
 module.exports = router
