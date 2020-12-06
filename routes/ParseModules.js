@@ -11,15 +11,17 @@ const Inventory = require("../models/Inventory")
 const ObjectId = mongoose.Types.ObjectId;
 
 router.route("/")
-    .post((req, res) => {
+    .post(async (req, res) => {
         let form = new multiparty.Form();
 
         form.parse(req, async (err, fields, files) => {
-            parseCSV(files["inventory"][0].path);
+            let result = await parseCSV(files["inventory"][0].path);
+            console.log("FINAL RESULT: " + result);
+
         });
     })
 
-function makeJSONFromData(data) {
+async function makeMapFromData(data) {
     const df = new pandas.DataFrame(data);
     let map = new Map();
     for(const x of df) {
@@ -30,8 +32,10 @@ function makeJSONFromData(data) {
             map.set(group, parseInt(x["_root"].entries[1][1]));
         }
     }
-    mapToJSON(map);
-    mapToServer(map);
+    //mapToJSON(map);
+    let result = await mapToServer(map);
+    console.log("MAP TO SERVER RESULT: " + result);
+    return result;
 }
 
 function mapToJSON(map) {
@@ -43,26 +47,30 @@ function mapToJSON(map) {
     out += "}";
     let json_out = JSON.parse(out);
 }
-function parseCSV(path) {
-    fs.readFile(path, async (error, data) => {
-        neatCsv(data).then(data => {
-            makeJSONFromData(data);
-        })
-    })
+async function parseCSV(path) {
+    let data = fs.readFileSync(path);
+    let csvData = await neatCsv(data);
+    let result = await makeMapFromData(csvData);
+    console.log("MAKE MAP FROM DATA RESULT: " + result);
+    return result;
 }
 
-function mapToServer(map) {
+async function mapToServer(map) {
     console.log("Map to Server Called");
     let wrappers = [];
     if (iterToArray(map.keys()).length === 0){
         return;
     }
-    makeWrapper(map, 0, wrappers);
+    for(let i = 0; i < iterToArray(map.keys()).length; i++) {
+        await makeWrapper(map, i, wrappers);
+    }
+    let result = await pushWrappers(wrappers);
+    console.log("PUSH WRAPPERS RESULT: " + result);
+    return result;
 }
 
-function makeWrapper(map, index, wrappers) {
-    console.log("Wrapper " + index + " is being made, looking for " + iterToArray(map.keys())[index]);
-    FoodType.findOne({group: iterToArray(map.keys())[index]}, (err, foodType) => {
+async function makeWrapper(map, index, wrappers) {
+    return await FoodType.findOne({group: iterToArray(map.keys())[index]}, (err, foodType) => {
         if(err) {
             console.log("err1");
         } else if(foodType) {
@@ -73,24 +81,18 @@ function makeWrapper(map, index, wrappers) {
             });
             console.log("wrapper was made");
             wrappers.push(wrapper);
-            if(index < iterToArray(map.keys()).length - 1) {
-                makeWrapper(map, index + 1, wrappers);
-            } else {
-                console.log("All wrappers are made");
-                pushWrappers(wrappers);
-            }
         }
-    })
+    }).exec()
 }
 
-function pushWrappers(wrappers) {
+async function pushWrappers(wrappers) {
     console.log(wrappers);
     let i = new Inventory({
         foodTypeWrapperIds: wrappers
     });
-    i.save().then(() => {
-        console.log("Saved");
-    });
+    await i.save();
+    console.log(i);
+    return i;
 }
 
 function iterToArray(i) {
