@@ -63,7 +63,6 @@ router.route('/latest_request')
             let bestCharityRequest = arr[0]
             CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function (err, charityReq) {
                 if (err) res.status(400).json();
-                console.log("FINAL: ");
                 let groupAmountMap =new Map();
                 let temp = charityReq[0]["donationRequestIds"]
                 for (let i = 0; i < temp.length; i++) {
@@ -85,8 +84,8 @@ router.route('/latest_request')
 
                 }
 
-                console.log(mapToJSON(groupAmountMap));
-                return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
+                console.log("FINAL: " + JSON.stringify(mapToJSON(groupAmountMap)));
+                return res.status(200).json(mapToJSON(groupAmountMap));
             });
 
         });
@@ -279,30 +278,16 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 }
 
-
 function mapToJSON(map) {
-    let out = "{"
+    let obj = {};
     for (let key of map.keys()) {
-        let getVal = map.get(key);
-        if (getVal.constructor.name == "Map") {
-            getVal = mapToJSON(getVal);
+        let value = map.get(key);
+        if (value.constructor.name === "Map") {
+            value = mapToJSON(value);
         }
-        if (getVal.length != null && getVal.length === 0) {
-            getVal = "null";
-        } else if (getVal.constructor.name === "CoreMongooseArray" && getVal.length > 0) {
-            let temp_getVal = "";
-            getVal = getVal.toObject();
-            for(let i = 0; i < getVal.length; i++) {
-                temp_getVal += "\"" + getVal[i] + "\",";
-            }
-            temp_getVal = temp_getVal.substring(0, temp_getVal.length - 1);
-            getVal = "[" + temp_getVal + "]";
-        }
-        out += "\"" + key + "\": " + getVal + ",";
+        Object.assign(obj, {[key]: value});
     }
-    out = out.substr(0, out.length - 1);
-    out += "}";
-    return out;
+    return obj
 }
 
 
@@ -329,8 +314,11 @@ router.route('/specific-donation-request')
             res.status(400).json();
         }
         donation_Req = lst[0]
+
+
         return donation_Req
     });
+
 
 
 module.exports = router
