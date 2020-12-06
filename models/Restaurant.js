@@ -16,16 +16,14 @@ const restaurantSchema = new Schema({
         type: String,
         required: true
     },
-    latitude: {
-        type: Float,
-        required: true
-    },
-    longitude: {
-        type: Float,
-        required: true
+    location: {
+        type: { type: String },
+        coordinates: []
     },
     donationBatches: [{type: ObjectId, ref: 'DonationBatch', required: true}]
 }, {collection: 'restaurantCollection'})
+restaurantSchema.index({ location: "2dsphere" });
+
 module.exports = mongoose.model('Restaurant', restaurantSchema)
 
 
