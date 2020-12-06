@@ -65,15 +65,26 @@ router.route('/latest_request')
                 if (err) res.status(400).json();
                 console.log("FINAL: ");
                 let groupAmountMap =new Map();
-                for (let donation of charityReq[0]["donationRequestIds"]) {
+                let temp = charityReq[0]["donationRequestIds"]
+                for (let i = 0; i < temp.length; i++) {
+                    let donation = temp[i]
                     console.log(donation.amountLeft);
                     console.log(donation.foodTypeId);
+                    console.log(donation._id);
                     console.log(donation.givenDonationIds)
                     let out = await FoodType.findById(donation.foodTypeId).exec();
-                    console.log(out.group);
-                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", donation.givenDonationIds));
+                    console.log(donation)
+                    let objj = await DonationRequest.find({_id: donation._id}).populate('givenDonationIds').exec();
+                    console.log("boo");
+                    console.log(objj);
+
+                    console.log(objj[0]);
+                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", objj[0].givenDonationIds));
+                    console.log("boo");
+                    console.log(groupAmountMap);
+
                 }
-                return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
+                return res.status(200).json(groupAmountMap);
             });
 
         });
