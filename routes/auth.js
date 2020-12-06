@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Charity = require('../models/Charity');
 const Restaurant = require('../models/Restaurant');
+
 const ObjectId = mongoose.Types.ObjectId;
 const multiparty = require("multiparty");
 const saltRounds = 10;

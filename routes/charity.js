@@ -14,6 +14,7 @@ const lodash = require('lodash')
 const utils = require('./ParseModules');
 
 const multiparty = require("multiparty");
+const { request } = require('express');
 
 const saltRounds = 10;
 
@@ -39,7 +40,75 @@ router.route('/request')
             res.status(200).json({message: "success"});
         });
     }
-)
+    )
+
+router.route('/latest_request')
+    .get(async (req, res) => {
+        const { id } = req.body;
+        Charity.findOne({ _id: id }, async function (err, charity) {
+            if (err) {
+                console.log(err);
+                return res.sendStatus(403)
+            } else {
+                console.log(charity.charityRequestIds);
+                let requests = [];
+                for (let reqId of charity.charityRequestIds) {
+                    let result = await getRequest(reqId);
+                    console.log(result);
+                    if (result) {
+                        console.log(result);
+                        requests.push(result);
+                    }
+                }
+                requests.sort(function (a, b) {
+                    // Turn your strings into dates, and then subtract them
+                    // to get a value that is either negative, positive, or zero.
+                    return new Date(b.createdDate) - new Date(a.createdDate);
+                });
+
+                return res.status(200).json({ request: requests[0] })
+            }
+        })
+    });
+
+router.route('/requests')
+    .get(async (req, res) => {
+        const { id } = req.body;
+        Charity.findOne({ _id: id }, async function (err, charity) {
+            if (err) {
+                console.log(err);
+                return res.sendStatus(403)
+            } else {
+                console.log(charity.charityRequestIds);
+                let requests = [];
+                for (let reqId of charity.charityRequestIds) {
+                    let result = await getRequest(reqId);
+                    console.log(result);
+                    if (result) {
+                        console.log(result);
+                        requests.push(result);
+                    }
+                }
+                return res.status(200).json({ requests })
+            }
+        })
+
+    });
+
+
+async function getRequest(id) {
+    return await CharityRequest.findOne({ _id: id }, function (err, request) {
+        if (err) {
+            return res.sendStatus(403)
+        } else {
+            // console.log(request);
+            return request;
+        }
+    }).exec();
+}
+
+
+
 
 function verifyAuthToken(req, res, next) {
     const tokenStr = req.headers['authorization']
@@ -86,13 +155,13 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
         let foodTypeWrapper = dreamFoodWrappers[i];
         let dreamFoodTypeId = foodTypeWrapper.foodTypeId
         let dreamAmount = foodTypeWrapper.amount
-        dreamMap.set(""+dreamFoodTypeId, dreamAmount)
+        dreamMap.set("" + dreamFoodTypeId, dreamAmount)
     }
     for (let i = 0; i < currentFoodWrappers.length; i++) {
         let foodTypeWrapper = currentFoodWrappers[i];
         let currentFoodTypeId = foodTypeWrapper.foodTypeId
         let currentAmount = foodTypeWrapper.amount
-        currMap.set(""+currentFoodTypeId, currentAmount)
+        currMap.set("" + currentFoodTypeId, currentAmount)
     }
 
     console.log("TESTS")
@@ -120,7 +189,7 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
         inventory: currentInventory,
         createdDate: new Date()
     })
-    for(const [key, value] of differences.entries()){
+    for (const [key, value] of differences.entries()) {
         let donationReq = new DonationRequest({
             status: true,
             amountLeft: value,
