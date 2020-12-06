@@ -26,6 +26,8 @@ router.route('/request')
         console.log("generating charity request")
         let form = new multiparty.Form();
 
+
+
         form.parse(req, async (err, fields, files) => {
             let currentInventory = await utils.parsing(files["inventory"][0].path);
             charity = req.charity
@@ -34,6 +36,7 @@ router.route('/request')
             let createdDate = new Date();
             let charityId = charity.uid
             let donationRequests = getDreamInventory(charityId, currentInventory)
+            res.status(200).json({message: "success"});
         });
         
         
