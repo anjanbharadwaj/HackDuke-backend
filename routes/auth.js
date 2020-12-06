@@ -130,6 +130,7 @@ router.route('/register')
 
                                 restaurant.save((err)=>{
                                     if (err){
+                                        console.log('restaurant save')
                                         res.status(400).json({error: err, message: "save error"})
                                     }else{
                                         res.status(200).json({message: "success"})

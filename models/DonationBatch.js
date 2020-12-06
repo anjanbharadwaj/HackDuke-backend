@@ -6,9 +6,6 @@ const donationBatchSchema = new Schema({
         type: Date,
         required: true
     },
-    givenDonationIds: {
-        type: [{type: ObjectId, ref: 'GivenDonation'}],
-        required: true
-    }
+    givenDonationIds: [{type: ObjectId, ref: 'GivenDonation', required: true}]
 }, {collection: 'donationBatchCollection'})
 module.exports = mongoose.model('DonationBatch', donationBatchSchema)
