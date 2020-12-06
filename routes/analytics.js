@@ -8,7 +8,7 @@ const Restaurant = require('../models/Restaurant');
 
 
 /*
-Analytics Page ->
+Analytics Page (charity)
     Total lbs of donations received
     Total # of restaurants donated from
     List of restaurants they received the most from
@@ -30,6 +30,18 @@ poundsToEmissions(pounds food): (returns amount of emissions saved)
 topRestaurants(int k, GivenDonations): (returns top k restaurants donations have been received from)
 
 lineChartData(GivenDonations): (returns a list of (date, donations received in amounts))
+
+
+Analytics Page (restaurant)
+    Approximate monetary value of donations
+    Approximate environmental impact
+    Total lbs of donations made
+    Total # of charities donated to
+    List of charities they donated most to
+    Line chart showing monthly donation amounts
+    Maybe even split by food group
+
+
 */
 
 
@@ -38,15 +50,84 @@ const saltRounds = 10;
 const secretKey = "hackdukeisamazing"
 
 router.use('/charity_analytics', verifyAuthToken)
+router.use('/restaurant_analytics', verifyAuthToken)
 // can access the charity by doing req.charity
 
 router.route('/charity_analytics')
     .post((req, res) => {
-        console.log("generating charity analytics")
-        res.status(200).json({message: poundsToEmissions(req.body.givenDonations)})
+        console.log("generating charity analytics");
+        res.status(200).json({message: poundsToEmissions(req.body.givenDonations)});
     }
 )
 
+router.route('/restaurant_analytics')
+    .post((req, res) => {
+        console.log("generating restaurant analytics");
+        res.status(200).json({message: totalRestaurantDonations(req.body.givenDonations)});
+    }
+)
+
+// RESTAURANT ANALYTICS
+
+function getRestaurantDonations(givenDonations, restaurant_id) {
+    out = [];
+
+    for (donation of givenDonations) {
+        if (donation["restaurant_id"] === restaurant_id) {
+            out.push(donation);
+        }
+    }
+
+    return out;
+}
+
+
+function restaurantEnvironmentalImpact(restaurantDonations) {
+    return poundsToEmissions(restaurantDonations);
+}
+
+
+function totalRestaurantDonations(restaurantDonations) {
+    return totalReceived(restaurantDonations);
+}
+
+
+function charitiesDonatedTo(k, restaurantDonations) {
+    if (k === -1) {
+        k = restaurantDonations.length;
+    }
+
+    let charities = {};
+
+    for (let donation of restaurantDonations) {
+        if (charities.hasOwnProperty(donation["charity_id"])) {
+            charities[donation["restaurant_id"]] += donation["donation_amount"];
+        } else {
+            charities[donation["restaurant_id"]] = donation["donation_amount"];
+        }
+    }
+
+    let sortable = [];
+
+    for (let charity in charities) {
+        sortable.push([charity, charities[charity]]);
+    }
+
+    sortable.sort(function(a, b) {
+        return -(a[1] - b[1]);
+    });
+
+    return sortable.slice(0, Math.min(k, sortable.length));
+}
+
+
+function restaurantLineChartData(restaurantDonations) {
+    return lineChartData(restaurantDonations);
+}
+
+
+
+// CHARITY ANALYTICS
 
 function getDonations(){
   var totalDonations = []
@@ -85,7 +166,7 @@ function totalReceived(givenDonations){
   console.log("Given Donations length: " + givenDonations.length)
   for(var i = 0; i < givenDonations.length; i++){
     var currJson = givenDonations[i];
-    total_ibs += currJson.amount_donated;
+    total_ibs += currJson.donation_amount;
   }
   return total_ibs;
 }
