@@ -44,7 +44,7 @@ router.route('/request')
     )
 
 router.route('/latest_request')
-    .get(async (req, res) => {
+    .post(async (req, res) => {
         const { id } = req.body;
 
 
@@ -75,7 +75,7 @@ router.route('/latest_request')
                 }
                 return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
             });
-        
+
         });
 
 
@@ -83,7 +83,7 @@ router.route('/latest_request')
         // Charity
         //     .find({ _id: id })
         //     .populate({
-        //     path:     'charityRequestIds',			
+        //     path:     'charityRequestIds',
         //     populate: { path:  'donationRequestIds',
         //             model: 'DonationRequest' }
         //     })
@@ -109,7 +109,7 @@ router.route('/latest_request')
         //     } else {
         //         console.log(charity.charityRequestIds);
 
-                
+
         //         let requests = [];
         //         for (let reqId of charity.charityRequestIds) {
         //             let result = await getRequest(reqId);
