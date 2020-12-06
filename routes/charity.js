@@ -36,11 +36,9 @@ router.route('/request')
             console.log(currentInventory)
             let createdDate = new Date();
             let charityId = charity.uid
-            let donationRequests = getDreamInventory(charityId, currentInventory)
+            let donationRequests = getDreamInventory(charityId, currentInventory, res)
             res.status(200).json({message: "success"});
         });
-
-
     }
     )
 
@@ -143,22 +141,27 @@ function verifyAuthToken(req, res, next) {
         console.log(authToken)
         jwt.verify(authToken, secretKey, (err, charity) => {
             if (err) {
-                return res.sendStatus(403)
+              return res.sendStatus(403)
             }
             req.charity = charity
             next()
-        })
+          })
     } else {
         return res.sendStatus(403)
     }
 }
 
 
-function getDreamInventory(charityId, currentInventory) {
+function getDreamInventory(charityId, currentInventory, res) {
     console.log(charityId)
     let foundCharity = Charity.findById(charityId).populate({
         path: 'dreamInventory'
-    }).exec(function (err, charity) {
+    }).exec(function(err, charity) {
+
+        if (err) {
+            return res.sendStatus(403);
+        }
+
         // console.log(charity);
         console.log('Found dream inventory: ', charity.dreamInventory);
         let arr = charity.dreamInventory.foodTypeWrapperIds;
@@ -231,4 +234,3 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 
 module.exports = router
-
