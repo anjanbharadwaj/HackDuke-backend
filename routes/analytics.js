@@ -56,7 +56,7 @@ router.use('/restaurant_analytics', verifyAuthToken)
 router.route('/charity_analytics')
     .post((req, res) => {
         console.log("generating charity analytics");
-        res.status(200).json({message: poundsToEmissions(req.body.givenDonations)});
+        res.status(200).json({message: totalReceivedOnDate(req.body.givenDonations, "01 Jan 2000 00:00:00 GMT")});
     }
 )
 
@@ -73,7 +73,7 @@ function getRestaurantDonations(givenDonations, restaurant_id) {
     out = [];
 
     for (donation of givenDonations) {
-        if (donation["restaurant_id"] === restaurant_id) {
+        if (donation["restaurantId"] === restaurant_id) {
             out.push(donation);
         }
     }
@@ -101,9 +101,9 @@ function charitiesDonatedTo(k, restaurantDonations) {
 
     for (let donation of restaurantDonations) {
         if (charities.hasOwnProperty(donation["charity_id"])) {
-            charities[donation["restaurant_id"]] += donation["donation_amount"];
+            charities[donation["restaurantId"]] += donation["donationAmount"];
         } else {
-            charities[donation["restaurant_id"]] = donation["donation_amount"];
+            charities[donation["restaurantId"]] = donation["donationAmount"];
         }
     }
 
@@ -129,25 +129,26 @@ function restaurantLineChartData(restaurantDonations) {
 
 // CHARITY ANALYTICS
 
-function getDonations(){
+function getDonations(email) {
   var totalDonations = []
-  email = "charity2@gmail.com"
   Charity.findOne({ email: email}, function (err, charity) {
       if (err) {
         console.log(err);
       } else {
-          charityReq = charity.CharityRequests;
+          charityReq = charity.charityRequestIds;
           for(var i = 0; i < charityReq.length; i++){
-            CharityRequests.findOne({CharityRequests : charityReq[i].charityId}, function(err, ch_req){
+            CharityRequests.findOne({charityRequestIds : charityReq[i]}, function(err, ch_req){
               if(err){
                 console.log(err);
               }else{
-                donationReq = ch_req.DonationRequests;
+                donationReq = ch_req.donationRequestIds;
                 for(var j = 0; j < donationReq.length; j++){
-                  DonationRequests.findOne({DonationRequests: donationReq[j].id}, function(err, d_r){
-                    givenDonations = d_r.GivenDonation;
+                  DonationRequests.findOne({donationRequestIds: donationReq[j]}, function(err, d_r){
+                    givenDonations = d_r.givenDonationIds;
                     for(var k = 0; k < givenDonations.length; k++){
-                      totalDonations.push(givenDonations[k]);
+                        GivenDonation.findOne({givenDonationIds: givenDonations[k]}, function(err, g_dr) {
+                            totalDonations.push(g_dr);
+                        })
                     }
                   })
                 }
@@ -166,18 +167,18 @@ function totalReceived(givenDonations){
   console.log("Given Donations length: " + givenDonations.length)
   for(var i = 0; i < givenDonations.length; i++){
     var currJson = givenDonations[i];
-    total_ibs += currJson.donation_amount;
+    total_ibs += currJson.donationAmount;
   }
   return total_ibs;
 }
 
 
-function totalReceived(givenDonations, date){
+function totalReceivedOnDate(givenDonations, date){
   var total_ibs = 0;
   for(var i = 0; i < givenDonations.length; i++){
     var currJson = givenDonations[i];
     if(!dateSame(date, currJson.date)) continue;
-    total_ibs += currJson.amount_donated;
+    total_ibs += currJson.donationAmount;
   }
   return total_ibs;
 }
@@ -186,7 +187,14 @@ function totalReceived(givenDonations, date){
 // I'm assuming here that date is a string
 function dateSame(date, date2){
   console.log("Comparing " + date + " with " + date2);
-  return date == date2;
+
+  let d1 = new Date(date);
+  let d2 = new Date(date2);
+
+  d1.setHours(0,0,0,0);
+  d2.setHours(0,0,0,0);
+
+  return d1.getTime() == d2.getTime();
 }
 
 
@@ -194,10 +202,10 @@ function topRestaurants(k, givenDonations) {
     let restaurants = {};
 
     for (let donation of givenDonations) {
-        if (restaurants.hasOwnProperty(donation["restaurant_id"])) {
-            restaurants[donation["restaurant_id"]] += donation["donation_amount"];
+        if (restaurants.hasOwnProperty(donation["restaurantId"])) {
+            restaurants[donation["restaurantId"]] += donation["donationAmount"];
         } else {
-            restaurants[donation["restaurant_id"]] = donation["donation_amount"];
+            restaurants[donation["restaurantId"]] = donation["donationAmount"];
         }
     }
 
@@ -226,11 +234,11 @@ function lineChartData(givenDonations) {
 
     for (let donation of givenDonations) {
         if (donation["date"] == currDate) {
-            currAmount += donation["donation_amount"];
+            currAmount += donation["donationAmount"];
         } else {
             sortable.push([currDate, currAmount]);
             currDate = donation["date"];
-            currAmount = donation["donation_amount"];
+            currAmount = donation["donationAmount"];
         }
     }
 
@@ -239,7 +247,13 @@ function lineChartData(givenDonations) {
     }
 
     sortable.sort(function(a, b) {
-        return Date.parse(a[0]) - Date.parse(b[0]);
+        d1 = Date.parse(a[0]);
+        d2 = Date.parse(b[0]);
+
+        d1.setHours(0,0,0,0);
+        d2.setHours(0,0,0,0);
+
+        return d1 - d2;
     })
 
     return sortable;
@@ -250,14 +264,16 @@ function lineChartData(givenDonations) {
 function poundsToEmissions(givenDonations) {
     let total = 0;
     for (let donation of givenDonations) {
-        delta = donation["donation_amount"];
-        if (donation["food_type"]["food_group"] === "protein") {
+        console.log(donation["foodTypeId"]["group"])
+        delta = donation["donationAmount"];
+        if (donation["foodTypeId"]["group"] === "protein") {
             total += 6.61 * 16 * delta / 4;
-        } else if (donation["food_type"]["food_group"] === "dairy") {
+            console.log(total)
+        } else if (donation["foodTypeId"]["group"] === "dairy") {
             total += 2.45 * 16 * delta / 4;
-        } else if (donation["food_type"]["food_group"] === "vegetables") {
+        } else if (donation["foodTypeId"]["group"] === "vegetables") {
             total += 0.005 * 16 * delta / 4;
-        } else if (donation["food_type"]["food_group"] === "grain") {
+        } else if (donation["foodTypeId"]["group"] === "grain") {
             total += 0.016 * 16 * delta / 4;
         }
     }
