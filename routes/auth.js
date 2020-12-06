@@ -35,6 +35,18 @@ router.route('/user')
 
     })
 
+router.route('/restaurant')
+    .get(async (req, res) => {
+        const { id } = req.query;
+        Restaurant.findById(id, function (err, restaurant) {
+            if (err) {
+                return res.sendStatus(404);
+            }
+            return res.status(200).json({ name: restaurant.name })
+
+        })
+
+    })
 
 
 function verifyAuthToken(req, res, next) {
@@ -44,11 +56,11 @@ function verifyAuthToken(req, res, next) {
         console.log(authToken)
         jwt.verify(authToken, secretKey, (err, user) => {
             if (err) {
-              return res.sendStatus(403)
+                return res.sendStatus(403)
             }
             req.user = user
             next()
-          })
+        })
     } else {
         return res.sendStatus(403)
     }
@@ -72,20 +84,20 @@ router.route('/register')
 
                     let dreamInventory = await utils.parsing(files["inventory"][0].path);
 
-                    Charity.findOne({ email: fields['email'][0]}, function (err, charity) {
+                    Charity.findOne({ email: fields['email'][0] }, function (err, charity) {
                         if (err) {
                             console.log("err1")
-                            res.status(400).json({error: err})
+                            res.status(400).json({ error: err })
                         } else {
                             if (charity) {
                                 console.log("err2: existing")
-                                res.status(400).json({error: err})
+                                res.status(400).json({ error: err })
                                 // already exists
                             } else {
-                                bcrypt.hash(fields['password'][0], saltRounds, async function(err, hashedPassword) {
+                                bcrypt.hash(fields['password'][0], saltRounds, async function (err, hashedPassword) {
                                     if (err) {
                                         console.log("encryption failed")
-                                        res.status(400).json({error: err, message: "encryption error"})
+                                        res.status(400).json({ error: err, message: "encryption error" })
                                     }
                                     else {
                                         completeRegisterCharity(files, fields, hashedPassword, res, dreamInventory);
@@ -104,17 +116,17 @@ router.route('/register')
 
 
         } else {
-            Restaurant.findOne({ email: req.body.email}, function (err, restaurant) {
+            Restaurant.findOne({ email: req.body.email }, function (err, restaurant) {
                 if (err) {
-                    res.status(400).json({error: err})
+                    res.status(400).json({ error: err })
                 } else {
                     if (restaurant) {
-                        res.status(400).json({error: err})
+                        res.status(400).json({ error: err })
                         // already exists
                     } else {
-                        bcrypt.hash(req.body.password, saltRounds, function(err, hashedPassword) {
+                        bcrypt.hash(req.body.password, saltRounds, function (err, hashedPassword) {
                             if (err) {
-                                res.status(400).json({error: err, message: "encryption error"})
+                                res.status(400).json({ error: err, message: "encryption error" })
                             }
                             else {
                                 const restaurant = new Restaurant({
@@ -128,12 +140,12 @@ router.route('/register')
                                     donationBatches: []
                                 })
 
-                                restaurant.save((err)=>{
-                                    if (err){
+                                restaurant.save((err) => {
+                                    if (err) {
                                         console.log('restaurant save')
-                                        res.status(400).json({error: err, message: "save error"})
-                                    }else{
-                                        res.status(200).json({message: "success"})
+                                        res.status(400).json({ error: err, message: "save error" })
+                                    } else {
+                                        res.status(200).json({ message: "success" })
                                     }
 
                                 });
@@ -148,7 +160,7 @@ router.route('/register')
 
 
     }
-)
+    )
 
 router.route('/login')
     .post((req, res) => {
@@ -157,23 +169,23 @@ router.route('/login')
         const email = req.body.email
         loginCharity(email, password, res)
     }
-)
+    )
 
 function loginCharity(email, password, res) {
-    Charity.findOne({ email: email}, function (err, charity) {
+    Charity.findOne({ email: email }, function (err, charity) {
         if (err) {
             loginRestaurant(email, password, res)
         } else {
             if (charity) {
                 hashedPassword = charity.password
-                bcrypt.compare(password, hashedPassword, function(err, correct) {
+                bcrypt.compare(password, hashedPassword, function (err, correct) {
                     if (err) {
                         loginRestaurant(email, password, res)
                     } else {
                         if (correct) {
-                            jwt.sign({uid: charity.id}, secretKey, (err, token) => {
+                            jwt.sign({ uid: charity.id }, secretKey, (err, token) => {
                                 console.log(charity)
-                                res.status(200).json({message: "success", token: token, type: "charity"})
+                                res.status(200).json({ message: "success", token: token, type: "charity" })
                             })
                         } else {
                             loginRestaurant(email, password, res)
@@ -190,27 +202,27 @@ function loginCharity(email, password, res) {
 
 function loginRestaurant(email, password, res) {
     console.log("loginRestaurant a")
-    Restaurant.findOne({ email: email}, function (err, restaurant) {
+    Restaurant.findOne({ email: email }, function (err, restaurant) {
         if (err) {
-            res.status(400).json({error: err})
+            res.status(400).json({ error: err })
         } else {
             if (restaurant) {
                 hashedPassword = restaurant.password
-                bcrypt.compare(password, hashedPassword, function(err, correct) {
+                bcrypt.compare(password, hashedPassword, function (err, correct) {
                     if (err) {
-                        res.status(400).json({error: err})
+                        res.status(400).json({ error: err })
                     } else {
                         if (correct) {
-                            jwt.sign({uid: restaurant.id}, secretKey, (err, token) => {
-                                res.status(200).json({message: "success", token: token, type: "restaurant"})
+                            jwt.sign({ uid: restaurant.id }, secretKey, (err, token) => {
+                                res.status(200).json({ message: "success", token: token, type: "restaurant" })
                             })
                         } else {
-                            res.status(401).json({error: "Incorrect Password!"})
+                            res.status(401).json({ error: "Incorrect Password!" })
                         }
                     }
                 });
             } else {
-                res.status(401).json({error: "Incorrect Email!"})
+                res.status(401).json({ error: "Incorrect Email!" })
             }
         }
     });
@@ -222,35 +234,35 @@ function createInventory() {
 }
 
 
-function completeRegisterCharity(files, fields, hashedPassword, res, dreamInventory){
+function completeRegisterCharity(files, fields, hashedPassword, res, dreamInventory) {
 
     console.log("SUCCESS FILE FOUND")
-        console.log(fields)
-        // let dreamInventory = await utils.parsing(files["inventory"][0].path);
-        // console.log("DREAM INVENTORY")
-        // console.log(dreamInventory)
-        const charity = new Charity({
-            name: fields['name'][0],
-            email: fields['email'][0],
-            password: hashedPassword,
-            location: {
-                "type": "Point",
-                coordinates: [parseFloat(fields['longitude'][0]), parseFloat(fields['latitude'][0])]
-            },
-            dreamInventory: dreamInventory._id,
-            charityRequestIds: []
-        });
+    console.log(fields)
+    // let dreamInventory = await utils.parsing(files["inventory"][0].path);
+    // console.log("DREAM INVENTORY")
+    // console.log(dreamInventory)
+    const charity = new Charity({
+        name: fields['name'][0],
+        email: fields['email'][0],
+        password: hashedPassword,
+        location: {
+            "type": "Point",
+            coordinates: [parseFloat(fields['longitude'][0]), parseFloat(fields['latitude'][0])]
+        },
+        dreamInventory: dreamInventory._id,
+        charityRequestIds: []
+    });
 
-        charity.save((err)=>{
-            if (err){
-                console.log("save failed")
-                console.log(err)
-                res.status(400).json({error: err, message: "save error"})
-            }else{
-                res.status(200).json({message: "success"})
-            }
+    charity.save((err) => {
+        if (err) {
+            console.log("save failed")
+            console.log(err)
+            res.status(400).json({ error: err, message: "save error" })
+        } else {
+            res.status(200).json({ message: "success" })
+        }
 
-        });
+    });
 
 }
 

@@ -38,18 +38,17 @@ router.route('/request')
             let createdDate = new Date();
             let charityId = charity.uid
             let donationRequests = getDreamInventory(charityId, currentInventory, res)
-            res.status(200).json({message: "success"});
+            res.status(200).json({ message: "success" });
         });
     }
     )
 
 router.route('/latest_request')
     .get(async (req, res) => {
-        console.log(req);
         const { id } = req.query;
 
         console.log(id);
-        Charity.find({_id: id}).populate("charityRequestIds").exec(function(err,data) {
+        Charity.find({ _id: id }).populate("charityRequestIds").exec(async function (err, data) {
             if (err) return handleError(err);
 
             let arr = data[0].charityRequestIds
@@ -62,33 +61,46 @@ router.route('/latest_request')
                 return new Date(b.createdDate) - new Date(a.createdDate);
             });
             let bestCharityRequest = arr[0]
-            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function(err, charityReq) {
+            return await CharityRequest.find({ _id: bestCharityRequest._id }).populate('donationRequestIds').exec(async function (err, charityReq) {
                 if (err) res.status(400).json();
-                console.log("FINAL: ");
-                let groupAmountMap =new Map();
+                // console.log("FINAL: ");
+                let groupAmountMap = new Map();
                 let temp = charityReq[0]["donationRequestIds"]
                 for (let i = 0; i < temp.length; i++) {
                     let donation = temp[i]
-                    console.log(donation.amountLeft);
-                    console.log(donation.foodTypeId);
-                    console.log(donation._id);
-                    console.log(donation.givenDonationIds)
+                    // console.log(donation.amountLeft);
+                    // console.log(donation.foodTypeId);
+                    // console.log(donation._id);
+                    // console.log(donation.givenDonationIds)
                     let out = await FoodType.findById(donation.foodTypeId).exec();
-                    console.log(donation)
-                    let objj = await DonationRequest.find({_id: donation._id}).populate('givenDonationIds').exec();
-                    console.log("boo");
-                    console.log(objj);
+                    // console.log(donation)
+                    let objj = await DonationRequest.find({ _id: donation._id }).populate('givenDonationIds').exec();
+                    // console.log("boo");
+                    // console.log(objj);
 
-                    console.log(objj[0]);
+                    // console.log(objj[0]);
                     groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", objj[0].givenDonationIds));
-                    console.log("boo");
-                    console.log(groupAmountMap);
+                    // console.log("boo");
+                    // console.log(groupAmountMap);
 
                 }
-                return res.status(200).json(groupAmountMap);
+                console.log(mapToJSON(groupAmountMap));
+                return res.status(200).json(mapToJSON(groupAmountMap));
             });
 
         });
+
+        function mapToJSON(map) {
+            let obj = {};
+            for (let key of map.keys()) {
+                let value = map.get(key);
+                if (value.constructor.name === "Map") {
+                    value = mapToJSON(value);
+                }
+                Object.assign(obj, { [key]: value });
+            }
+            return obj
+        }
 
 
 
@@ -144,8 +156,9 @@ router.route('/latest_request')
 
 router.route('/requests')
     .get(async (req, res) => {
-
-        const { id } = req.body;
+        
+        const { id } = req.query;
+        console.log("JADKBKJFNJKANDFJNDJKSNFKJSD:     " + JSON.stringify(req.query));
         Charity.findOne({ _id: id }, async function (err, charity) {
             if (err) {
                 console.log(err);
@@ -189,11 +202,11 @@ function verifyAuthToken(req, res, next) {
         console.log(authToken)
         jwt.verify(authToken, secretKey, (err, charity) => {
             if (err) {
-              return res.sendStatus(403)
+                return res.sendStatus(403)
             }
             req.charity = charity
             next()
-          })
+        })
     } else {
         return res.sendStatus(403)
     }
@@ -204,7 +217,7 @@ function getDreamInventory(charityId, currentInventory, res) {
     console.log(charityId)
     let foundCharity = Charity.findById(charityId).populate({
         path: 'dreamInventory'
-    }).exec(function(err, charity) {
+    }).exec(function (err, charity) {
 
         if (err) {
             return res.sendStatus(403);
@@ -281,9 +294,9 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 function mapToJSON(map) {
     let out = "{"
-    for(let key of map.keys()){
+    for (let key of map.keys()) {
         let getVal = map.get(key);
-        if(getVal.constructor.name == "Map") {
+        if (getVal.constructor.name == "Map") {
             getVal = mapToJSON(getVal);
         }
         if (getVal.length != null && getVal.length === 0) {
@@ -301,7 +314,7 @@ function mapToJSON(map) {
 router.route('/specific-donation-request')
     .get(async (req, res) => {
         const { id, food_type_id } = req.body;
-        let data = await Charity.find({_id: id}).populate("charityRequestIds");
+        let data = await Charity.find({ _id: id }).populate("charityRequestIds");
         let arr = data[0].charityRequestIds
         arr.sort(function (a, b) {
             // Turn your strings into dates, and then subtract them
@@ -310,9 +323,9 @@ router.route('/specific-donation-request')
             return new Date(b.createdDate) - new Date(a.createdDate);
         });
         let bestCharityRequest = arr[0]
-        let charityReq = await CharityRequest.find({_id: bestCharityRequest._id}).populate({
+        let charityReq = await CharityRequest.find({ _id: bestCharityRequest._id }).populate({
             path: 'donationRequestIds',
-            match: { foodTypeId: food_type_id}
+            match: { foodTypeId: food_type_id }
         });
         console.log("FINAL: ");
         let lst = charityReq.donationRequestIds
