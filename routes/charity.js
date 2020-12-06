@@ -78,7 +78,16 @@ router.route('/latest_request')
                     console.log(objj);
 
                     console.log(objj[0]);
-                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", objj[0].givenDonationIds));
+                    let modifiedGivenDonations = [];
+                    for (let givenDonation of objj[0].givenDonationIds) {
+                        let r = await Restaurant.findById(givenDonation.restaurantId).exec();
+                        let modifiedGivenDonation = {...givenDonation.toObject()};
+                        modifiedGivenDonation.name = r.toObject().name;
+                        console.log("MODIFIED DONATION: " + JSON.stringify(modifiedGivenDonation));
+                        console.log("NAME ADDED: " + r.toObject().name);
+                        modifiedGivenDonations.push(modifiedGivenDonation);
+                    }
+                    groupAmountMap.set(out.group, (new Map).set("amount", donation.amountLeft).set("givenDonationIds", modifiedGivenDonations));
                     console.log("boo");
                     console.log(groupAmountMap);
 
