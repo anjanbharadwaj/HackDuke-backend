@@ -25,6 +25,8 @@ const saltRounds = 10;
 const secretKey = "hackdukeisamazing"
 
 router.use('/donate', verifyAuthToken)
+router.use('/approved', verifyAuthToken)
+router.use('/donationbatches', verifyAuthToken)
 
 router.route('/donate')
     .post(async (req, res) => {
@@ -309,10 +311,20 @@ router.route('/approved')
             createdDate: new Date()
         });
         await donoBatch.save();
+        let r = req.restaurant
+        let restaurantId = r.uid
+        let actualRestaurant = await Restaurant.findById(restaurantId);
+        actualRestaurant.donationBatches.push(donoBatch);
+        await actualRestaurant.save();
+
         console.log("changes made! ")
+        res.json(donoBatch);
 
     }
 )
+
+
+
 
 /*
 
@@ -392,6 +404,46 @@ async function specificDonationRequest(id, food_type_id) {
     donation_Req = lst[0]
     return donation_Req
 }
+
+
+
+
+// router.route('/donationbatches')
+//     .post(async (req, res) => {
+//         console.log("grabbing all restaurant donation")
+//         let form = new multiparty.Form();
+//         form.parse(req, async (err, fields, files) => {
+//             let json_out = await utils.parsing(files["inventory"][0].path);
+//             restaurant = req.restaurant
+//             // console.log("CURRENT JSON: ")
+//             // console.log(json_out)
+//             // console.log("restaurant: ")
+//             // console.log(restaurant)
+//             let restaurantId = restaurant.uid
+//             console.log(restaurantId)
+//             let donationRequests = getRestaurant(restaurantId, json_out, fields, res)
+//         });
+        
+        
+//     }
+// )
+
+router.route('/donationbatches')
+    .get(async (req, res) => {
+        let restaurant = await Restaurant.findById({ _id: req.restaurant.uid }).populate({
+            path:     'donationBatches',			
+	        populate: { path:  'givenDonationIds',
+            model: 'GivenDonation', 
+                populate: { path:  'charityId'} 
+            }
+        }        
+        );
+        console.log("restaurant all batches")
+        console.log(restaurant)
+        console.log(restaurant[0])
+        res.json(restaurant);
+    });
+
 
 module.exports = router
 
