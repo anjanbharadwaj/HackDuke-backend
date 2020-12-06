@@ -61,40 +61,45 @@ router.route('/register')
         const usertype = req.query.usertype
         console.log("type: " + usertype)
         if (usertype == "charity") {
-            console.log("requested charity register")
-            let form = new multiparty.Form();
-            form.parse(req, async (err, fields, files) => {
-                console.log("fields")
-                console.log(fields)
-                console.log("email")
-                console.log(fields['email'][0])
-                Charity.findOne({ email: fields['email'][0]}, function (err, charity) {
-                    if (err) {
-                        console.log("err1")
-                        res.status(400).json({error: err})
-                    } else {
-                        if (charity) {
-                            console.log("err2: existing")
+            console.log("requested charity register");
+            try {
+                let form = new multiparty.Form();
+                form.parse(req, async (err, fields, files) => {
+                    console.log("fields")
+                    console.log(fields)
+                    console.log("email")
+                    console.log(fields['email'][0])
+
+                    let dreamInventory = await utils.parsing(files["inventory"][0].path);
+
+                    Charity.findOne({ email: fields['email'][0]}, function (err, charity) {
+                        if (err) {
+                            console.log("err1")
                             res.status(400).json({error: err})
-                            // already exists
                         } else {
+                            if (charity) {
+                                console.log("err2: existing")
+                                res.status(400).json({error: err})
+                                // already exists
+                            } else {
+                                bcrypt.hash(fields['password'][0], saltRounds, async function(err, hashedPassword) {
+                                    if (err) {
+                                        console.log("encryption failed")
+                                        res.status(400).json({error: err, message: "encryption error"})
+                                    }
+                                    else {
+                                        completeRegisterCharity(files, fields, hashedPassword, res, dreamInventory);
 
+                                    }
+                                })
 
-                            bcrypt.hash(fields['password'][0], saltRounds, async function(err, hashedPassword) {
-                                if (err) {
-                                    console.log("encryption failed")
-                                    res.status(400).json({error: err, message: "encryption error"})
-                                }
-                                else {
-                                    await completeRegisterCharity(files, fields, hashedPassword, res);
-
-                                }
-                            })
-
+                            }
                         }
-                    }
+                    });
                 });
-            });
+            } catch (e) {
+                console.log(e);
+            }
 
 
 
@@ -117,8 +122,8 @@ router.route('/register')
                                     email: req.body.email,
                                     password: hashedPassword,
                                     location: {
-                                        type: "Point",
-                                        coordinates: [req.body.latitude, req.body.longitude]
+                                        "type": "Point",
+                                        coordinates: [req.body.longitude, req.body.latitude]
                                     },
                                     donationBatches: []
                                 })
@@ -217,28 +222,29 @@ function createInventory() {
 }
 
 
-async function completeRegisterCharity(files, fields, hashedPassword, res){
+function completeRegisterCharity(files, fields, hashedPassword, res, dreamInventory){
 
     console.log("SUCCESS FILE FOUND")
-        // console.log(fields)
-        let dreamInventory = await utils.parsing(files["inventory"][0].path);
-        // console.log("SUCCESS FILE FOUND")
+        console.log(fields)
+        // let dreamInventory = await utils.parsing(files["inventory"][0].path);
+        // console.log("DREAM INVENTORY")
         // console.log(dreamInventory)
         const charity = new Charity({
             name: fields['name'][0],
             email: fields['email'][0],
             password: hashedPassword,
             location: {
-                type: "Point",
-                coordinates: [fields['latitude'][0], fields['longitude'][0]]
+                "type": "Point",
+                coordinates: [parseFloat(fields['longitude'][0]), parseFloat(fields['latitude'][0])]
             },
             dreamInventory: dreamInventory._id,
             charityRequestIds: []
-        })
-        console.log(charity)
+        });
+
         charity.save((err)=>{
             if (err){
                 console.log("save failed")
+                console.log(err)
                 res.status(400).json({error: err, message: "save error"})
             }else{
                 res.status(200).json({message: "success"})

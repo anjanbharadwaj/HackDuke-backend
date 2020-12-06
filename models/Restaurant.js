@@ -17,8 +17,15 @@ const restaurantSchema = new Schema({
         required: true
     },
     location: {
-        type: { type: String },
-        coordinates: []
+        type: {
+            type: String,
+            enum: ['Point'],
+            required: true
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
     },
     donationBatches: [{type: ObjectId, ref: 'DonationBatch', required: true}]
 }, {collection: 'restaurantCollection'})
