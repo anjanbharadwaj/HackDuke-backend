@@ -45,26 +45,50 @@ router.route('/request')
 router.route('/latest_request')
     .get(async (req, res) => {
         const { id } = req.body;
-        Charity
-            .find({ _id: id })
-            .populate({
-            path:     'charityRequestIds',			
-            populate: { path:  'donationRequestIds',
-                    model: 'DonationRequest' }
-            })
-            .exec(function(err, data){
-                if (err) return handleError(err);
-                console.log(data)
-                data.sort(function (a, b) {
-                    // Turn your strings into dates, and then subtract them
-                    // to get a value that is either negative, positive, or zero.
-                    return new Date(b.createdDate) - new Date(a.createdDate);
-                });
 
-                let best = data[0]
 
-                return res.status(200).json({ request: data[0] })
+        Charity.find({_id: id}).populate("charityRequestIds").exec(function(err,data) {
+            if (err) return handleError(err);
+
+            let arr = data[0].charityRequestIds
+            console.log("arr")
+            console.log(arr)
+            arr.sort(function (a, b) {
+                // Turn your strings into dates, and then subtract them
+                // to get a value that is either negative, positive, or zero.
+                // console.log()
+                return new Date(b.createdDate) - new Date(a.createdDate);
             });
+            let bestCharityRequest = arr[0]
+            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(function(err, charityReq) {
+                if (err) res.status(400).json();
+                return res.status(200).json({ request: charityReq })
+            });
+        
+        });
+
+
+
+        // Charity
+        //     .find({ _id: id })
+        //     .populate({
+        //     path:     'charityRequestIds',			
+        //     populate: { path:  'donationRequestIds',
+        //             model: 'DonationRequest' }
+        //     })
+        //     .exec(function(err, data){
+        //         if (err) return handleError(err);
+        //         console.log(data)
+        //         data.sort(function (a, b) {
+        //             // Turn your strings into dates, and then subtract them
+        //             // to get a value that is either negative, positive, or zero.
+        //             return new Date(b.createdDate) - new Date(a.createdDate);
+        //         });
+
+        //         let best = data[0]
+
+        //         return res.status(200).json({ request: data[0] })
+        //     });
 
 
         // Charity.findOne({ _id: id }, async function (err, charity) {
