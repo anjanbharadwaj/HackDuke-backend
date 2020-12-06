@@ -120,7 +120,7 @@ async function grabCharityRequests(restaurantId, restaurant, fields, json_out, r
         let json_restaurant = {
             "restaurant_inventory": json_out,
             "rest_id": restaurantId,
-            "max_splits": 1000, //make it fields['splits'][0]
+            "max_splits": fields['splits'][0], //make it fields['splits'][0]
             "rest_lat": restaurant.location.coordinates[1],
             "rest_long": restaurant.location.coordinates[0]
         }
@@ -318,7 +318,7 @@ router.route('/approved')
         await actualRestaurant.save();
 
         console.log("changes made! ")
-        res.json(donoBatch);
+        res.status(200).json(donoBatch);
 
     }
 )
