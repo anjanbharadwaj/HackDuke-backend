@@ -48,7 +48,7 @@ router.route('/latest_request')
         const { id } = req.body;
 
 
-        Charity.find({_id: id}).populate("charityRequestIds").exec(function(err,data) {
+        Charity.find({_id: id}).populate("charityRequestIds").exec(function (err, data) {
             if (err) return handleError(err);
 
             let arr = data[0].charityRequestIds
@@ -61,7 +61,7 @@ router.route('/latest_request')
                 return new Date(b.createdDate) - new Date(a.createdDate);
             });
             let bestCharityRequest = arr[0]
-            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function(err, charityReq) {
+            CharityRequest.find({_id: bestCharityRequest._id}).populate('donationRequestIds').exec(async function (err, charityReq) {
                 if (err) res.status(400).json();
                 console.log("FINAL: ");
                 let groupAmountMap =new Map();
@@ -84,7 +84,9 @@ router.route('/latest_request')
                     console.log(groupAmountMap);
 
                 }
-                res.status(200).json(groupAmountMap);
+
+                console.log(mapToJSON(groupAmountMap));
+                return res.status(200).json(JSON.parse(mapToJSON(groupAmountMap)));
             });
 
         });
@@ -143,6 +145,7 @@ router.route('/latest_request')
 
 router.route('/requests')
     .get(async (req, res) => {
+
         const { id } = req.body;
         Charity.findOne({ _id: id }, async function (err, charity) {
             if (err) {
@@ -279,13 +282,21 @@ async function generateDonationRequests(charity, charityId, dreamFoodWrappers, c
 
 function mapToJSON(map) {
     let out = "{"
-    for(let key of map.keys()){
+    for (let key of map.keys()) {
         let getVal = map.get(key);
-        if(getVal.constructor.name == "Map") {
+        if (getVal.constructor.name == "Map") {
             getVal = mapToJSON(getVal);
         }
         if (getVal.length != null && getVal.length === 0) {
             getVal = "null";
+        } else if (getVal.constructor.name === "CoreMongooseArray" && getVal.length > 0) {
+            let temp_getVal = "";
+            getVal = getVal.toObject();
+            for(let i = 0; i < getVal.length; i++) {
+                temp_getVal += "\"" + getVal[i] + "\",";
+            }
+            temp_getVal = temp_getVal.substring(0, temp_getVal.length - 1);
+            getVal = "[" + temp_getVal + "]";
         }
         out += "\"" + key + "\": " + getVal + ",";
     }
