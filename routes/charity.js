@@ -47,30 +47,54 @@ router.route('/request')
 router.route('/latest_request')
     .get(async (req, res) => {
         const { id } = req.body;
-        Charity.findOne({ _id: id }, async function (err, charity) {
-            if (err) {
-                console.log(err);
-                return res.sendStatus(403)
-            } else {
-                console.log(charity.charityRequestIds);
-                let requests = [];
-                for (let reqId of charity.charityRequestIds) {
-                    let result = await getRequest(reqId);
-                    console.log(result);
-                    if (result) {
-                        console.log(result);
-                        requests.push(result);
-                    }
-                }
-                requests.sort(function (a, b) {
+        Charity
+            .find({ _id: id })
+            .populate({
+            path:     'charityRequestIds',			
+            populate: { path:  'donationRequestIds',
+                    model: 'DonationRequest' }
+            })
+            .exec(function(err, data){
+                if (err) return handleError(err);
+                console.log(data)
+                data.sort(function (a, b) {
                     // Turn your strings into dates, and then subtract them
                     // to get a value that is either negative, positive, or zero.
                     return new Date(b.createdDate) - new Date(a.createdDate);
                 });
 
-                return res.status(200).json({ request: requests[0] })
-            }
-        })
+                let best = data[0]
+
+                return res.status(200).json({ request: data[0] })
+            });
+
+
+        // Charity.findOne({ _id: id }, async function (err, charity) {
+        //     if (err) {
+        //         console.log(err);
+        //         return res.sendStatus(403)
+        //     } else {
+        //         console.log(charity.charityRequestIds);
+
+                
+        //         let requests = [];
+        //         for (let reqId of charity.charityRequestIds) {
+        //             let result = await getRequest(reqId);
+        //             console.log(result);
+        //             if (result) {
+        //                 console.log(result);
+        //                 requests.push(result);
+        //             }
+        //         }
+        //         requests.sort(function (a, b) {
+        //             // Turn your strings into dates, and then subtract them
+        //             // to get a value that is either negative, positive, or zero.
+        //             return new Date(b.createdDate) - new Date(a.createdDate);
+        //         });
+
+        //         return res.status(200).json({ request: requests[0] })
+        //     }
+        // })
     });
 
 router.route('/requests')

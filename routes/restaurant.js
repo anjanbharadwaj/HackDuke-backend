@@ -49,17 +49,17 @@ function getRestaurant(restaurantId, json_out, fields, res) {
             console.log(restaurant)
             res.status(400).json({error: err})
         } else {
-            grabCharityRequests(restaurant, fields, json_out, res);
+            grabCharityRequests(restaurantId, restaurant, fields, json_out, res);
         }
     });
 }
 
-function grabCharityRequests(restaurant, fields, json_out, res) {
+function grabCharityRequests(restaurantId, restaurant, fields, json_out, res) {
     // db.charityCollection.createIndex({ location: '2dsphere' })
     Charity.find({
         location: {
          $near: {
-          $maxDistance: 1,
+          $maxDistance: 10000,
           $geometry: {
            type: "Point",
            coordinates: restaurant.location.coordinates
@@ -69,11 +69,64 @@ function grabCharityRequests(restaurant, fields, json_out, res) {
        }).find((error, results) => {
         if (error) console.log(error);
         console.log("DISTTANCEE")
-        console.log()
-        console.log(JSON.stringify(results, 0, 2));
+        console.log(results)
+
+        let json_restaurant = {
+            "restaurant_inventory": json_out,
+            "rest_id": restaurantId,
+            "max_splits": 1000,
+            "rest_lat": restaurant.location.coordinates[1],
+            "rest_long": restaurant.location.coordinates[0]
+        }
+
+
+        // console.log(JSON.stringify(results, 0, 2));
        });
+
     // CharityRequest.find
 }
+
+/*
+[ { location: { coordinates: [Array], type: 'Point' },
+    charityRequestIds:
+     [ 5fcc7ca096e0f9536459c58d,
+       5fcc7cb896e0f9536459c595,
+       5fcc7cb996e0f9536459c59e,
+       5fcc7cb996e0f9536459c5a7,
+       5fcc7cba96e0f9536459c5b0,
+       5fcc7cbb96e0f9536459c5b9 ],
+    _id: 5fcc764bd309966ea75c7dca,
+    name: 'praneeth',
+    email: 'praneeth@gmail.com',
+    password:
+     '$2b$10$78/xZwrELpekLJFuhcsWnOpkorDSJCLBX3MmTk6TUazHsD992h9Am',
+    dreamInventory: 5fcc764bd309966ea75c7dc6,
+    __v: 6 } ]
+*/
+
+/*
+{
+            "charity_id": 3,
+            "charity_lat": 89,
+            "charity_long" : 120,
+            "donation_requests": [
+                {
+                    "food_type": {
+                        "food_group": "banana"
+                    },
+
+                    "amount_left": 15
+                },
+                {
+                    "food_type": {
+                        "food_group": "orange"
+                    },
+
+                    "amount_left": 11
+                }
+            ]
+        }
+*/
 
 function verifyAuthToken(req, res, next) {
     const tokenStr = req.headers['authorization']
