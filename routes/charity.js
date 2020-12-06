@@ -84,7 +84,7 @@ router.route('/latest_request')
                     console.log(groupAmountMap);
 
                 }
-                return res.status(200).json(groupAmountMap);
+                res.status(200).json(groupAmountMap);
             });
 
         });
